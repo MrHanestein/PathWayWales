@@ -32,6 +32,8 @@ const transferableStrengths = [
   'Data Analysis',
   'Project Management',
   'Problem Solving',
+  'Budget Management',
+  'Team Coordination',
 ];
 
 const learningStyles = [

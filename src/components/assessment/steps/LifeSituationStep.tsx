@@ -16,6 +16,7 @@ const employmentStatuses = [
   'Unemployed',
   'Career break',
   'Self-employed',
+  'Facing redundancy',
 ];
 
 const reasonsForChange = [
@@ -58,7 +59,7 @@ const immediateNeeds = [
 
 const LifeSituationStep = ({ data, updateData }: LifeSituationStepProps) => {
   const weeklyHours = data.weekly_hours_available || 10;
-  const isRedundancy = data.reason_for_change === 'redundancy';
+  const isRedundancy = data.reason_for_change === 'redundancy' || data.employment_status === 'Facing redundancy';
 
   return (
     <div className="space-y-6">

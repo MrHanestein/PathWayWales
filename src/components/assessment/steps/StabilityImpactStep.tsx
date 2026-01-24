@@ -16,6 +16,7 @@ const worryOptions = [
   { value: 'time', label: 'Time Investment', description: 'How long it will take', icon: Clock },
   { value: 'ai-replacing', label: 'AI Replacing Roles', description: 'Jobs being automated', icon: Bot },
   { value: 'interview-confidence', label: 'Interview Confidence', description: 'Performing in tech interviews', icon: Shield },
+  { value: 'imposter-syndrome', label: 'Imposter Syndrome', description: 'Feeling unqualified despite skills', icon: UserX },
 ];
 
 const rolePreferences = [
@@ -23,6 +24,8 @@ const rolePreferences = [
   { value: 'long-term-demand', label: 'Strong Long-term Demand', description: 'Growing job market' },
   { value: 'remote-friendly', label: 'Remote-Friendly', description: 'Work from home options' },
   { value: 'clear-progression', label: 'Clear Progression Ladder', description: 'Defined career path' },
+  { value: 'wales-based', label: 'Wales-Based Employers', description: 'Companies with offices in Wales' },
+  { value: 'public-sector', label: 'Public Sector Options', description: 'Government and council roles' },
 ];
 
 const StabilityImpactStep = ({ data, updateData }: StabilityImpactStepProps) => {
