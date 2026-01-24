@@ -283,13 +283,14 @@ const InteractiveWalesMap = ({
       if (!coords) return;
 
       cityJobs.forEach((job, index) => {
-        // Use actual job coordinates if available, otherwise fallback to city coordinates
-        const baseLng = typeof job.lng === 'number' ? job.lng : coords[0];
-        const baseLat = typeof job.lat === 'number' ? job.lat : coords[1];
-        
-        // Only add small offset if using city fallback and multiple jobs
-        let markerLng = baseLng;
-        let markerLat = baseLat;
+        // Offset markers in same city
+        const angle = (index * 360) / Math.max(cityJobs.length, 1);
+        const radius = 0.015 * Math.min(index, 5);
+        const offsetLng = Math.cos(angle * Math.PI / 180) * radius;
+        const offsetLat = Math.sin(angle * Math.PI / 180) * radius;
+
+        const markerLng = coords[0] + offsetLng;
+        const markerLat = coords[1] + offsetLat;
 
         const levelColors: Record<string, string> = {
           easy: '#22c55e',
@@ -303,34 +304,19 @@ const InteractiveWalesMap = ({
           difficult: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
         };
 
-        if (typeof job.lng !== 'number' && cityJobs.length > 1) {
-          const angle = (index * 360) / cityJobs.length;
-          const radius = 0.01;
-          markerLng += Math.cos(angle * Math.PI / 180) * radius;
-          markerLat += Math.sin(angle * Math.PI / 180) * radius;
-        }
-
-        // Create futuristic hexagonal marker - outer element for Mapbox positioning
+        // Create futuristic hexagonal marker
         const el = document.createElement('div');
         el.className = 'futuristic-marker';
         el.style.cssText = `
           width: 40px;
           height: 46px;
-          cursor: pointer;
-        `;
-
-        // Inner wrapper for animations - Mapbox won't touch this
-        const inner = document.createElement('div');
-        inner.className = 'marker-inner';
-        inner.style.cssText = `
-          width: 100%;
-          height: 100%;
           position: relative;
-          transition: transform 0.2s ease, filter 0.2s ease;
+          cursor: pointer;
+          transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), filter 0.3s ease;
           filter: drop-shadow(0 0 12px ${levelColors[job.entry_level]}80);
         `;
 
-        inner.innerHTML = `
+        el.innerHTML = `
           <svg viewBox="0 0 40 46" width="40" height="46" style="position: absolute; top: 0; left: 0;">
             <defs>
               <linearGradient id="grad-${job.id}" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -366,6 +352,20 @@ const InteractiveWalesMap = ({
               <animate attributeName="opacity" values="0.9;0.5;0.9" dur="2s" repeatCount="indefinite"/>
             </circle>
           </svg>
+          <!-- Orbiting ring -->
+          <div style="
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 50px;
+            height: 50px;
+            margin-left: -25px;
+            margin-top: -25px;
+            border: 1px solid ${levelColors[job.entry_level]}40;
+            border-radius: 50%;
+            animation: marker-orbit 4s linear infinite;
+            pointer-events: none;
+          "></div>
           <!-- Entry level badge -->
           <div style="
             position: absolute;
@@ -384,8 +384,6 @@ const InteractiveWalesMap = ({
             ${job.entry_level === 'easy' ? '🎯' : job.entry_level === 'moderate' ? '⚡' : '🔥'}
           </div>
         `;
-
-        el.appendChild(inner);
 
         // Create the marker with center anchor for stable positioning
         const marker = new mapboxgl.Marker({ 
@@ -466,10 +464,10 @@ const InteractiveWalesMap = ({
           maxWidth: 'none'
         }).setHTML(popupContent);
 
-        // Hover events - animate the inner element, not the outer Mapbox element
+        // Hover events - popup stays at marker location
         el.addEventListener('mouseenter', () => {
-          inner.style.transform = 'scale(1.15)';
-          inner.style.filter = `drop-shadow(0 0 20px ${levelColors[job.entry_level]})`;
+          el.style.transform = 'scale(1.15)';
+          el.style.filter = `drop-shadow(0 0 20px ${levelColors[job.entry_level]})`;
           el.style.zIndex = '100';
           
           // Set popup at the marker's coordinates
@@ -479,8 +477,8 @@ const InteractiveWalesMap = ({
         });
 
         el.addEventListener('mouseleave', () => {
-          inner.style.transform = 'scale(1)';
-          inner.style.filter = `drop-shadow(0 0 12px ${levelColors[job.entry_level]}80)`;
+          el.style.transform = 'scale(1)';
+          el.style.filter = `drop-shadow(0 0 12px ${levelColors[job.entry_level]}80)`;
           el.style.zIndex = '1';
           popup.remove();
         });
@@ -757,10 +755,12 @@ const InteractiveWalesMap = ({
           display: none !important;
         }
         .futuristic-marker {
-          /* No transform transitions on outer element - Mapbox controls this */
+          transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), filter 0.3s ease;
+          will-change: transform;
         }
-        .futuristic-marker .marker-inner {
-          transition: transform 0.2s ease, filter 0.2s ease;
+        @keyframes marker-orbit {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
         }
       `}</style>
     </div>

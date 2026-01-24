@@ -331,20 +331,6 @@
   animation: signal-flash 0.5s ease-out forwards;
 }
 
-/* Marquee animation for partners carousel */
-@keyframes marquee {
-  0% {
-    transform: translateX(0);
-  }
-  100% {
-    transform: translateX(-50%);
-  }
-}
-
-.animate-marquee {
-  animation: marquee 20s linear infinite;
-}
-
 /* Glassmorphism utility */
 .glass-panel {
   background: hsl(var(--background) / 0.7);

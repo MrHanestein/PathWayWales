@@ -7,7 +7,6 @@ import SearchBar from "@/components/SearchBar";
 import PartnersCarousel from "@/components/PartnersCarousel";
 import JobDetailsModal from "@/components/JobDetailsModal";
 import VoiceCoach from "@/components/VoiceCoach";
-import OnboardingTour from "@/components/OnboardingTour";
 import { useJobs } from "@/hooks/useJobs";
 import type { JobMarker } from "@/components/InteractiveWalesMap";
 
@@ -50,7 +49,7 @@ const Index = () => {
       <TopNavBar />
 
       <main className="flex-1 flex pt-16 pb-24 relative">
-        <div className="flex-1 relative" data-tour="map">
+        <div className="flex-1 relative">
           <InteractiveWalesMap 
             isScanning={isScanning}
             showMarkers={showMarkers}
@@ -59,7 +58,7 @@ const Index = () => {
             jobs={jobs}
           />
 
-          <div className="absolute bottom-4 left-4 right-20 md:left-8 md:right-28 z-20" data-tour="search">
+          <div className="absolute bottom-4 left-4 right-20 md:left-8 md:right-28 z-20">
             <SearchBar onSearch={handleSearch} isSearching={isScanning} />
           </div>
 
@@ -88,9 +87,6 @@ const Index = () => {
         resourcesLocked={resourcesLocked}
         onVoiceClick={() => setShowVoiceCoach(true)}
       />
-
-      {/* Onboarding Tour */}
-      <OnboardingTour />
     </div>
   );
 };
