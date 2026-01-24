@@ -1,13 +1,13 @@
 import { useState } from "react";
 import TopNavBar from "@/components/TopNavBar";
 import BottomNavBar from "@/components/BottomNavBar";
-import FuturisticWalesMap from "@/components/FuturisticWalesMap";
+import InteractiveWalesMap from "@/components/InteractiveWalesMap";
 import CategoryButtons from "@/components/CategoryButtons";
 import SearchBar from "@/components/SearchBar";
 import PartnersCarousel from "@/components/PartnersCarousel";
 import JobDetailsModal from "@/components/JobDetailsModal";
 import { useJobs } from "@/hooks/useJobs";
-import type { JobMarker } from "@/components/FuturisticWalesMap";
+import type { JobMarker } from "@/components/InteractiveWalesMap";
 
 const Index = () => {
   const [isScanning, setIsScanning] = useState(false);
@@ -31,7 +31,7 @@ const Index = () => {
     setTimeout(() => {
       setIsScanning(false);
       setShowMarkers(true);
-    }, 2000);
+    }, 2500);
   };
 
   const handleMarkerClick = (marker: JobMarker) => {
@@ -52,7 +52,7 @@ const Index = () => {
       <main className="flex-1 flex pt-16 pb-24 relative">
         {/* Map Area - Takes most of the space */}
         <div className="flex-1 relative">
-          <FuturisticWalesMap 
+          <InteractiveWalesMap 
             isScanning={isScanning}
             showMarkers={showMarkers}
             filterLevel={activeFilter}
@@ -61,7 +61,7 @@ const Index = () => {
           />
 
           {/* Search Bar - Bottom of map */}
-          <div className="absolute bottom-4 left-4 right-20 md:left-8 md:right-28">
+          <div className="absolute bottom-4 left-4 right-20 md:left-8 md:right-28 z-20">
             <SearchBar 
               onSearch={handleSearch}
               isSearching={isScanning}
@@ -69,13 +69,13 @@ const Index = () => {
           </div>
 
           {/* Partners Carousel - Bottom right */}
-          <div className="absolute bottom-4 right-4 w-36 md:w-44">
+          <div className="absolute bottom-4 right-4 w-36 md:w-44 z-20">
             <PartnersCarousel />
           </div>
 
           {/* Loading indicator */}
           {loading && (
-            <div className="absolute top-20 left-1/2 -translate-x-1/2 bg-card/90 backdrop-blur-sm px-4 py-2 rounded-full border border-primary/30 text-sm text-primary flex items-center gap-2">
+            <div className="absolute top-20 left-1/2 -translate-x-1/2 bg-card/90 backdrop-blur-sm px-4 py-2 rounded-full border border-primary/30 text-sm text-primary flex items-center gap-2 z-20">
               <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
               Syncing data...
             </div>
@@ -83,7 +83,7 @@ const Index = () => {
         </div>
 
         {/* Right Sidebar - Category Buttons */}
-        <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col items-center">
+        <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col items-center z-20">
           <CategoryButtons 
             activeFilter={activeFilter}
             onFilterChange={setActiveFilter}
