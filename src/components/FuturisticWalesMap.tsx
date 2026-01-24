@@ -19,6 +19,7 @@ export interface JobMarker {
   description?: string | null;
   skills?: string[];
   posted_date?: string | null;
+  url?: string | null;
 }
 
 interface FuturisticWalesMapProps {
@@ -98,6 +99,7 @@ const FuturisticWalesMap = ({
         description: job.description,
         skills: job.skills,
         posted_date: job.posted_date,
+        url: job.url,
       } as JobMarker;
     })
     .filter((m): m is JobMarker => m !== null);
