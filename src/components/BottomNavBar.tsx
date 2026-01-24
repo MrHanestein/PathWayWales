@@ -18,7 +18,7 @@ const BottomNavBar = ({
   onAssessmentClick,
 }: BottomNavBarProps) => {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-center gap-8 px-6 py-4 bg-background/85 backdrop-blur-md border-t border-border">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-center gap-8 px-6 py-4 bg-background/85 backdrop-blur-md border-t border-border" data-tour="bottom-nav">
       {/* Resources - Can be locked */}
       <Button
         variant="ghost"
@@ -63,6 +63,7 @@ const BottomNavBar = ({
         variant="ghost"
         size="lg"
         onClick={onAssessmentClick}
+        data-tour="assessment"
         className={cn(
           "relative flex flex-col items-center gap-1 h-auto py-2 px-4",
           activeTab === "assessment" && "text-primary"
