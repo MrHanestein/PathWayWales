@@ -198,6 +198,8 @@ export const useAssessment = () => {
   }, [currentStep]);
 
   const completeAssessment = useCallback(async () => {
+    console.log('[Assessment] Starting completion...', { userId: user?.id, assessmentId });
+    
     if (!user) {
       toast({
         title: "Login required",
@@ -218,38 +220,68 @@ export const useAssessment = () => {
         ...data,
       };
 
+      console.log('[Assessment] Saving payload:', { assessmentId: currentAssessmentId, completed: true });
+
       // If no assessment exists yet, create one; otherwise update
       if (!currentAssessmentId) {
         const { data: newAssessment, error: insertError } = await supabase
           .from('assessments')
           .insert(payload)
-          .select('id')
+          .select('id, completed')
           .single();
         
         if (insertError) throw insertError;
         currentAssessmentId = newAssessment.id;
         setAssessmentId(currentAssessmentId);
+        console.log('[Assessment] Created new record:', newAssessment);
       } else {
         // Update existing assessment with all data and mark complete
-        const { error: assessmentError } = await supabase
+        const { data: updated, error: assessmentError } = await supabase
           .from('assessments')
           .update(payload)
-          .eq('id', currentAssessmentId);
+          .eq('id', currentAssessmentId)
+          .select('id, completed')
+          .single();
         
         if (assessmentError) throw assessmentError;
+        console.log('[Assessment] Updated record:', updated);
       }
 
-      // Update profile to mark assessment as completed
+      // Update profile to mark assessment as completed (upsert to ensure profile exists)
       const { error: profileError } = await supabase
         .from('profiles')
-        .update({ assessment_completed: true })
-        .eq('id', user.id);
+        .upsert({ 
+          id: user.id, 
+          email: user.email,
+          assessment_completed: true 
+        }, { 
+          onConflict: 'id' 
+        });
       
-      if (profileError) throw profileError;
+      if (profileError) {
+        console.error('[Assessment] Profile update error:', profileError);
+        // Don't throw - profile update is secondary
+      }
 
+      // Verify the save worked
+      const { data: verification, error: verifyError } = await supabase
+        .from('assessments')
+        .select('id, completed')
+        .eq('id', currentAssessmentId)
+        .single();
+      
+      if (verifyError) throw verifyError;
+      
+      console.log('[Assessment] Verification:', verification);
+      
+      if (!verification?.completed) {
+        throw new Error('Verification failed - completed flag not set');
+      }
+
+      console.log('[Assessment] Completion successful!');
       return true;
     } catch (error) {
-      console.error('Error completing assessment:', error);
+      console.error('[Assessment] Error completing assessment:', error);
       toast({
         title: "Error completing assessment",
         description: "Please try again.",

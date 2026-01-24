@@ -2,10 +2,9 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, BookOpen, Award, MapPin, Briefcase, Users, 
-  GraduationCap, Sparkles, Filter, AlertTriangle
+  GraduationCap, Sparkles, Loader2, ExternalLink, Globe
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { getRoleData, walesResources } from '@/lib/careerData';
@@ -18,6 +17,7 @@ import {
   communityResources 
 } from '@/lib/resourcesData';
 import { AssessmentData } from '@/hooks/useAssessment';
+import { searchResources, SearchedResource } from '@/lib/api/resourceSearch';
 import ResourceCard from '@/components/resources/ResourceCard';
 import CertificationCard from '@/components/resources/CertificationCard';
 import WalesFundingCard from '@/components/resources/WalesFundingCard';
@@ -32,6 +32,10 @@ const Resources = () => {
   const [budgetFilter, setBudgetFilter] = useState<'all' | 'free'>('all');
   const [isRedundancy, setIsRedundancy] = useState(false);
   const [assessmentData, setAssessmentData] = useState<AssessmentData | null>(null);
+  
+  // Dynamic resources state
+  const [dynamicResources, setDynamicResources] = useState<SearchedResource[]>([]);
+  const [searchingResources, setSearchingResources] = useState(false);
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -118,6 +122,27 @@ const Resources = () => {
     loadUserData();
   }, [user]);
 
+  // Fetch dynamic resources when roleId or budgetFilter changes
+  useEffect(() => {
+    const fetchDynamicResources = async () => {
+      if (!roleId) return;
+      
+      setSearchingResources(true);
+      const results = await searchResources({
+        roleId,
+        resourceType: budgetFilter,
+        location: assessmentData?.location,
+      });
+      setDynamicResources(results);
+      setSearchingResources(false);
+    };
+
+    // Only fetch after initial load is complete
+    if (!loading && roleId) {
+      fetchDynamicResources();
+    }
+  }, [roleId, budgetFilter, loading, assessmentData?.location]);
+
   const role = getRoleData(roleId);
   const roleFreeResources = freeResources[roleId] || [];
   const rolePaidResources = paidResources[roleId] || [];
@@ -192,6 +217,54 @@ const Resources = () => {
 
         {/* Redundancy Support (Conditional) */}
         {isRedundancy && <RedundancySupport />}
+
+        {/* Dynamic Resources - Web Scraped */}
+        <ResourceCategory
+          title="Latest Courses Found Online"
+          description="Dynamically curated from the web"
+          icon={Globe}
+          iconColor="text-cyan-500"
+          count={dynamicResources.length}
+        >
+          {searchingResources ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-primary" />
+              <span className="ml-2 text-sm text-muted-foreground">Searching for resources...</span>
+            </div>
+          ) : dynamicResources.length > 0 ? (
+            <div className="grid gap-3">
+              {dynamicResources.map((resource) => (
+                <a
+                  key={resource.url}
+                  href={resource.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block p-4 rounded-lg border border-border hover:border-primary/50 hover:bg-muted/50 transition-colors group"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium text-foreground group-hover:text-primary transition-colors line-clamp-1">
+                        {resource.title}
+                      </h4>
+                      <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+                        {resource.description}
+                      </p>
+                      <span className="text-xs text-muted-foreground mt-2 inline-flex items-center gap-1">
+                        <Globe className="w-3 h-3" />
+                        {resource.source}
+                      </span>
+                    </div>
+                    <ExternalLink className="w-4 h-4 text-muted-foreground group-hover:text-primary flex-shrink-0" />
+                  </div>
+                </a>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground text-center py-4">
+              No additional resources found. Check back later!
+            </p>
+          )}
+        </ResourceCategory>
 
         {/* Certifications */}
         <ResourceCategory
