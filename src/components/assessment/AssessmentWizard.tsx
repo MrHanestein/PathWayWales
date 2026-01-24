@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { X, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAssessment } from '@/hooks/useAssessment';
@@ -19,6 +20,7 @@ interface AssessmentWizardProps {
 }
 
 const AssessmentWizard = ({ onClose, onComplete }: AssessmentWizardProps) => {
+  const navigate = useNavigate();
   const {
     data,
     updateData,
@@ -46,6 +48,7 @@ const AssessmentWizard = ({ onClose, onComplete }: AssessmentWizardProps) => {
 
   const handleViewResults = () => {
     onComplete();
+    navigate('/results');
   };
 
   const canProceed = () => {

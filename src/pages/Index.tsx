@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import TopNavBar from "@/components/TopNavBar";
 import BottomNavBar from "@/components/BottomNavBar";
 import InteractiveWalesMap from "@/components/InteractiveWalesMap";
@@ -14,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { JobMarker } from "@/components/InteractiveWalesMap";
 
 const Index = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [isScanning, setIsScanning] = useState(false);
   const [showMarkers, setShowMarkers] = useState(false);
@@ -67,6 +69,7 @@ const Index = () => {
   const handleAssessmentComplete = () => {
     setShowAssessment(false);
     setResourcesLocked(false);
+    navigate('/results');
   };
 
   if (showVoiceCoach) {
