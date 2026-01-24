@@ -23,33 +23,37 @@ export const useJobs = (filterLevel?: 'easy' | 'moderate' | 'difficult' | null) 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const fetchJobs = async () => {
+    setLoading(true);
+    setError(null);
+
+    let query = supabase
+      .from('jobs')
+      .select('*')
+      .order('posted_date', { ascending: false });
+
+    if (filterLevel) {
+      query = query.eq('entry_level', filterLevel);
+    }
+
+    const { data, error: fetchError } = await query;
+
+    if (fetchError) {
+      setError(fetchError.message);
+      setJobs([]);
+    } else {
+      setJobs((data as Job[]) || []);
+    }
+    setLoading(false);
+  };
+
   useEffect(() => {
-    const fetchJobs = async () => {
-      setLoading(true);
-      setError(null);
-
-      let query = supabase
-        .from('jobs')
-        .select('*')
-        .order('posted_date', { ascending: false });
-
-      if (filterLevel) {
-        query = query.eq('entry_level', filterLevel);
-      }
-
-      const { data, error: fetchError } = await query;
-
-      if (fetchError) {
-        setError(fetchError.message);
-        setJobs([]);
-      } else {
-        setJobs((data as Job[]) || []);
-      }
-      setLoading(false);
-    };
-
     fetchJobs();
   }, [filterLevel]);
+
+  const refetch = () => {
+    fetchJobs();
+  };
 
   const getJobsByCity = (city: string) => {
     return jobs.filter(job => job.city.toLowerCase() === city.toLowerCase());
@@ -63,5 +67,5 @@ export const useJobs = (filterLevel?: 'easy' | 'moderate' | 'difficult' | null) 
     };
   };
 
-  return { jobs, loading, error, getJobsByCity, getJobCounts };
+  return { jobs, loading, error, refetch, getJobsByCity, getJobCounts };
 };
