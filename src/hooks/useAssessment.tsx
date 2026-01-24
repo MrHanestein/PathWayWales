@@ -198,17 +198,39 @@ export const useAssessment = () => {
   }, [currentStep]);
 
   const completeAssessment = useCallback(async () => {
-    if (!user || !assessmentId) return false;
+    if (!user) return false;
     setSaving(true);
 
     try {
-      // Mark assessment as completed
-      const { error: assessmentError } = await supabase
-        .from('assessments')
-        .update({ completed: true, current_step: totalSteps })
-        .eq('id', assessmentId);
-      
-      if (assessmentError) throw assessmentError;
+      let currentAssessmentId = assessmentId;
+
+      const payload = {
+        user_id: user.id,
+        current_step: totalSteps,
+        completed: true,
+        ...data,
+      };
+
+      // If no assessment exists yet, create one; otherwise update
+      if (!currentAssessmentId) {
+        const { data: newAssessment, error: insertError } = await supabase
+          .from('assessments')
+          .insert(payload)
+          .select('id')
+          .single();
+        
+        if (insertError) throw insertError;
+        currentAssessmentId = newAssessment.id;
+        setAssessmentId(currentAssessmentId);
+      } else {
+        // Update existing assessment with all data and mark complete
+        const { error: assessmentError } = await supabase
+          .from('assessments')
+          .update(payload)
+          .eq('id', currentAssessmentId);
+        
+        if (assessmentError) throw assessmentError;
+      }
 
       // Update profile to mark assessment as completed
       const { error: profileError } = await supabase
@@ -230,7 +252,7 @@ export const useAssessment = () => {
     } finally {
       setSaving(false);
     }
-  }, [user, assessmentId, toast]);
+  }, [user, assessmentId, data, toast]);
 
   return {
     data,
