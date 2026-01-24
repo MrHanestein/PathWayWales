@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { X, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAssessment } from '@/hooks/useAssessment';
+import { useAuth } from '@/hooks/useAuth';
+import AuthModal from '@/components/AuthModal';
 import AssessmentProgress from './AssessmentProgress';
 import AboutYouStep from './steps/AboutYouStep';
 import IncomeSecurityStep from './steps/IncomeSecurityStep';
@@ -21,6 +23,7 @@ interface AssessmentWizardProps {
 
 const AssessmentWizard = ({ onClose, onComplete }: AssessmentWizardProps) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const {
     data,
     updateData,
@@ -34,9 +37,14 @@ const AssessmentWizard = ({ onClose, onComplete }: AssessmentWizardProps) => {
   } = useAssessment();
 
   const [isCompleted, setIsCompleted] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   const handleNext = async () => {
     if (currentStep === totalSteps) {
+      if (!user) {
+        setShowAuthModal(true);
+        return;
+      }
       const success = await completeAssessment();
       if (success) {
         setIsCompleted(true);
@@ -140,33 +148,45 @@ const AssessmentWizard = ({ onClose, onComplete }: AssessmentWizardProps) => {
       {/* Footer Navigation */}
       {!isCompleted && (
         <footer className="border-t border-border bg-background/95 backdrop-blur px-4 py-4">
-          <div className="max-w-2xl mx-auto flex justify-between items-center">
-            <Button
-              variant="outline"
-              onClick={prevStep}
-              disabled={currentStep === 1 || saving}
-              className="gap-2"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              Back
-            </Button>
+          <div className="max-w-2xl mx-auto space-y-3">
+            {currentStep === totalSteps && !user && (
+              <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-600 text-sm text-center">
+                ⚠️ You'll need to sign in to save your results and unlock resources
+              </div>
+            )}
+            <div className="flex justify-between items-center">
+              <Button
+                variant="outline"
+                onClick={prevStep}
+                disabled={currentStep === 1 || saving}
+                className="gap-2"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                Back
+              </Button>
 
-            <span className="text-sm text-muted-foreground">
-              Step {currentStep} of {totalSteps}
-            </span>
+              <span className="text-sm text-muted-foreground">
+                Step {currentStep} of {totalSteps}
+              </span>
 
-            <Button
-              onClick={handleNext}
-              disabled={!canProceed() || saving}
-              className="gap-2"
-            >
-              {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-              {currentStep === totalSteps ? 'Complete' : 'Next'}
-              {!saving && currentStep !== totalSteps && <ChevronRight className="w-4 h-4" />}
-            </Button>
+              <Button
+                onClick={handleNext}
+                disabled={!canProceed() || saving}
+                className="gap-2"
+              >
+                {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+                {currentStep === totalSteps ? 'Complete' : 'Next'}
+                {!saving && currentStep !== totalSteps && <ChevronRight className="w-4 h-4" />}
+              </Button>
+            </div>
           </div>
         </footer>
       )}
+
+      <AuthModal 
+        isOpen={showAuthModal} 
+        onClose={() => setShowAuthModal(false)} 
+      />
     </div>
   );
 };

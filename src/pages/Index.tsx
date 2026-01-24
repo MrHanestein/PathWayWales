@@ -9,6 +9,7 @@ import PartnersCarousel from "@/components/PartnersCarousel";
 import JobDetailsModal from "@/components/JobDetailsModal";
 import VoiceCoach from "@/components/VoiceCoach";
 import AssessmentWizard from "@/components/assessment/AssessmentWizard";
+import AuthModal from "@/components/AuthModal";
 import { useJobs } from "@/hooks/useJobs";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,6 +25,7 @@ const Index = () => {
   const [selectedJob, setSelectedJob] = useState<JobMarker | null>(null);
   const [showVoiceCoach, setShowVoiceCoach] = useState(false);
   const [showAssessment, setShowAssessment] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   const { jobs, loading, refetch, getJobCounts } = useJobs();
   const jobCounts = getJobCounts();
@@ -70,6 +72,14 @@ const Index = () => {
     setShowAssessment(false);
     setResourcesLocked(false);
     navigate('/results');
+  };
+
+  const handleAssessmentClick = () => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+    setShowAssessment(true);
   };
 
   if (showVoiceCoach) {
@@ -128,7 +138,12 @@ const Index = () => {
         resourcesLocked={resourcesLocked}
         onResourcesClick={() => navigate('/resources')}
         onVoiceClick={() => setShowVoiceCoach(true)}
-        onAssessmentClick={() => setShowAssessment(true)}
+        onAssessmentClick={handleAssessmentClick}
+      />
+
+      <AuthModal 
+        isOpen={showAuthModal} 
+        onClose={() => setShowAuthModal(false)} 
       />
     </div>
   );
