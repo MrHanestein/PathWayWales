@@ -180,6 +180,109 @@
   }
 }
 
+/* Enhanced Radar Sweep Animation */
+@keyframes radar-sweep {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes ring-expand {
+  0% {
+    transform: scale(0);
+    opacity: 1;
+    border-width: 3px;
+  }
+  50% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(2.5);
+    opacity: 0;
+    border-width: 1px;
+  }
+}
+
+@keyframes particle-burst {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes hexagon-pulse {
+  0%, 100% {
+    filter: drop-shadow(0 0 8px currentColor);
+    transform: scale(1);
+  }
+  50% {
+    filter: drop-shadow(0 0 16px currentColor);
+    transform: scale(1.05);
+  }
+}
+
+@keyframes marker-orbit {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes scan-line {
+  0% {
+    top: -10%;
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    top: 110%;
+    opacity: 0;
+  }
+}
+
+@keyframes counter-up {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  10% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  90% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes signal-flash {
+  0%, 100% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
 .animate-pulse-glow {
   animation: pulse-glow 2s ease-in-out infinite;
 }
@@ -198,4 +301,64 @@
 
 .animate-glow-pulse {
   animation: glow-pulse 2s ease-in-out infinite;
+}
+
+.animate-radar-sweep {
+  animation: radar-sweep 2s linear infinite;
+}
+
+.animate-ring-expand {
+  animation: ring-expand 2s ease-out forwards;
+}
+
+.animate-hexagon-pulse {
+  animation: hexagon-pulse 2s ease-in-out infinite;
+}
+
+.animate-marker-orbit {
+  animation: marker-orbit 4s linear infinite;
+}
+
+.animate-scan-line {
+  animation: scan-line 2s ease-in-out forwards;
+}
+
+.animate-counter-up {
+  animation: counter-up 2.5s ease-out forwards;
+}
+
+.animate-signal-flash {
+  animation: signal-flash 0.5s ease-out forwards;
+}
+
+/* Glassmorphism utility */
+.glass-panel {
+  background: hsl(var(--background) / 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid hsl(var(--primary) / 0.2);
+  box-shadow: 0 8px 32px hsl(0 0% 0% / 0.3);
+}
+
+/* Futuristic marker styles */
+.futuristic-marker {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.futuristic-marker:hover {
+  transform: scale(1.2);
+  z-index: 100 !important;
+}
+
+/* Custom scrollbar for map overlays */
+.map-overlay::-webkit-scrollbar {
+  width: 4px;
+}
+
+.map-overlay::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+}
+
+.map-overlay::-webkit-scrollbar-thumb {
+  background: hsl(var(--primary) / 0.5);
+  border-radius: 2px;
 }
