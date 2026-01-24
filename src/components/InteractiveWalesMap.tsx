@@ -25,6 +25,7 @@ export interface JobMarker {
   posted_date?: string | null;
   lng?: number;
   lat?: number;
+  url?: string | null;
 }
 
 interface InteractiveWalesMapProps {
@@ -114,10 +115,11 @@ const InteractiveWalesMap = ({
       style: styleUrls[mapStyle],
       center: [-3.5, 52.2],
       zoom: 7,
-      minZoom: 5,
+      minZoom: 6,
       maxZoom: 15,
       pitch: 30,
       bearing: 0,
+      maxBounds: [[-7, 50], [0, 55]], // Restrict to UK area to prevent marker drift
     });
 
     map.current.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');

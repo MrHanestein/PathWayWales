@@ -236,7 +236,19 @@ const JobDetailsModal = ({ job, onClose, onStartPathway }: JobDetailsModalProps)
             <Button 
               variant="outline"
               className="flex-1 border-primary/30 hover:border-primary hover:bg-primary/10"
-              onClick={onClose}
+              onClick={() => {
+                const url = (job as any).url;
+                if (url) {
+                  window.open(url, '_blank', 'noopener,noreferrer');
+                } else {
+                  // Fallback: search for job on Google
+                  window.open(
+                    `https://www.google.com/search?q=${encodeURIComponent(job.title + ' ' + job.company + ' jobs wales')}`,
+                    '_blank',
+                    'noopener,noreferrer'
+                  );
+                }
+              }}
             >
               <ExternalLink className="w-4 h-4 mr-2" />
               View Original

@@ -16,6 +16,7 @@ export interface Job {
   description: string | null;
   lat: number | null;
   lng: number | null;
+  url: string | null;
 }
 
 export const useJobs = (filterLevel?: 'easy' | 'moderate' | 'difficult' | null) => {
