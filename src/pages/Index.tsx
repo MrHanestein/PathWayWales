@@ -126,6 +126,7 @@ const Index = () => {
 
       <BottomNavBar 
         resourcesLocked={resourcesLocked}
+        onResourcesClick={() => navigate('/resources')}
         onVoiceClick={() => setShowVoiceCoach(true)}
         onAssessmentClick={() => setShowAssessment(true)}
       />
