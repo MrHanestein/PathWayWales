@@ -14,7 +14,96 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      jobs: {
+        Row: {
+          city: string
+          company: string
+          created_at: string
+          description: string | null
+          entry_level: string
+          id: string
+          lat: number | null
+          lng: number | null
+          posted_date: string | null
+          requirements: string[] | null
+          salary_max: number | null
+          salary_min: number | null
+          skills: string[] | null
+          source: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          city: string
+          company: string
+          created_at?: string
+          description?: string | null
+          entry_level: string
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          posted_date?: string | null
+          requirements?: string[] | null
+          salary_max?: number | null
+          salary_min?: number | null
+          skills?: string[] | null
+          source?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          city?: string
+          company?: string
+          created_at?: string
+          description?: string | null
+          entry_level?: string
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          posted_date?: string | null
+          requirements?: string[] | null
+          salary_max?: number | null
+          salary_min?: number | null
+          skills?: string[] | null
+          source?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          assessment_completed: boolean | null
+          avatar_url: string | null
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          onboarding_completed: boolean | null
+          updated_at: string
+        }
+        Insert: {
+          assessment_completed?: boolean | null
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id: string
+          onboarding_completed?: boolean | null
+          updated_at?: string
+        }
+        Update: {
+          assessment_completed?: boolean | null
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          onboarding_completed?: boolean | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
