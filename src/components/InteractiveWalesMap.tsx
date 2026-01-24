@@ -277,121 +277,120 @@ const InteractiveWalesMap = ({
       jobsByCity[job.city].push(job);
     });
 
-    // Create markers for each city
-    Object.entries(jobsByCity).forEach(([city, cityJobs]) => {
-      const coords = cityCoordinates[city];
-      if (!coords) return;
+    // Create markers for each job - use job's actual lat/lng when available
+    filteredJobs.forEach((job, index) => {
+      // Priority: use job's stored lat/lng, fallback to city lookup
+      let markerLng: number;
+      let markerLat: number;
 
-      cityJobs.forEach((job, index) => {
-        // Offset markers in same city
-        const angle = (index * 360) / Math.max(cityJobs.length, 1);
-        const radius = 0.015 * Math.min(index, 5);
+      if (job.lat !== null && job.lng !== null) {
+        // Use the job's actual coordinates from database
+        markerLng = job.lng;
+        markerLat = job.lat;
+      } else {
+        // Fallback to city coordinates with offset for multiple jobs in same city
+        const coords = cityCoordinates[job.city];
+        if (!coords) return;
+
+        const cityJobs = jobs.filter(j => j.city === job.city);
+        const cityIndex = cityJobs.findIndex(j => j.id === job.id);
+        const angle = (cityIndex * 360) / Math.max(cityJobs.length, 1);
+        const radius = 0.012 * Math.min(cityIndex, 5);
         const offsetLng = Math.cos(angle * Math.PI / 180) * radius;
         const offsetLat = Math.sin(angle * Math.PI / 180) * radius;
 
-        const markerLng = coords[0] + offsetLng;
-        const markerLat = coords[1] + offsetLat;
+        markerLng = coords[0] + offsetLng;
+        markerLat = coords[1] + offsetLat;
+      }
 
-        const levelColors: Record<string, string> = {
-          easy: '#22c55e',
-          moderate: '#f97316',
-          difficult: '#ef4444'
-        };
+      const levelColors: Record<string, string> = {
+        easy: '#22c55e',
+        moderate: '#f97316',
+        difficult: '#ef4444'
+      };
 
-        const levelGradients: Record<string, string> = {
-          easy: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
-          moderate: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
-          difficult: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
-        };
+      const levelGradients: Record<string, string> = {
+        easy: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
+        moderate: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
+        difficult: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
+      };
 
-        // Create futuristic hexagonal marker
-        const el = document.createElement('div');
-        el.className = 'futuristic-marker';
-        el.style.cssText = `
-          width: 40px;
-          height: 46px;
-          position: relative;
-          cursor: pointer;
-          transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), filter 0.3s ease;
-          filter: drop-shadow(0 0 12px ${levelColors[job.entry_level]}80);
-        `;
+      // Create futuristic hexagonal marker - fixed size, centered anchor
+      const el = document.createElement('div');
+      el.className = 'futuristic-marker';
+      el.style.cssText = `
+        width: 36px;
+        height: 42px;
+        position: relative;
+        cursor: pointer;
+        transition: transform 0.2s ease, filter 0.2s ease;
+        filter: drop-shadow(0 0 10px ${levelColors[job.entry_level]}80);
+        will-change: transform;
+        pointer-events: auto;
+      `;
 
-        el.innerHTML = `
-          <svg viewBox="0 0 40 46" width="40" height="46" style="position: absolute; top: 0; left: 0;">
-            <defs>
-              <linearGradient id="grad-${job.id}" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" style="stop-color:${levelColors[job.entry_level]};stop-opacity:1" />
-                <stop offset="100%" style="stop-color:${levelColors[job.entry_level]};stop-opacity:0.7" />
-              </linearGradient>
-              <filter id="glow-${job.id}" x="-50%" y="-50%" width="200%" height="200%">
-                <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
-                <feMerge>
-                  <feMergeNode in="coloredBlur"/>
-                  <feMergeNode in="SourceGraphic"/>
-                </feMerge>
-              </filter>
-            </defs>
-            <!-- Outer hexagon -->
-            <polygon 
-              points="20,2 38,12 38,34 20,44 2,34 2,12" 
-              fill="url(#grad-${job.id})" 
-              stroke="${levelColors[job.entry_level]}" 
-              stroke-width="2"
-              filter="url(#glow-${job.id})"
-            />
-            <!-- Inner hexagon -->
-            <polygon 
-              points="20,8 32,15 32,31 20,38 8,31 8,15" 
-              fill="rgba(0,0,0,0.4)" 
-              stroke="${levelColors[job.entry_level]}" 
-              stroke-width="1"
-              stroke-opacity="0.5"
-            />
-            <!-- Center dot -->
-            <circle cx="20" cy="23" r="5" fill="white" opacity="0.9">
-              <animate attributeName="opacity" values="0.9;0.5;0.9" dur="2s" repeatCount="indefinite"/>
-            </circle>
-          </svg>
-          <!-- Orbiting ring -->
-          <div style="
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 50px;
-            height: 50px;
-            margin-left: -25px;
-            margin-top: -25px;
-            border: 1px solid ${levelColors[job.entry_level]}40;
-            border-radius: 50%;
-            animation: marker-orbit 4s linear infinite;
-            pointer-events: none;
-          "></div>
-          <!-- Entry level badge -->
-          <div style="
-            position: absolute;
-            bottom: -8px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 10px;
-            background: ${levelColors[job.entry_level]};
-            color: white;
-            padding: 2px 6px;
-            border-radius: 8px;
-            font-weight: 600;
-            white-space: nowrap;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-          ">
-            ${job.entry_level === 'easy' ? '🎯' : job.entry_level === 'moderate' ? '⚡' : '🔥'}
-          </div>
-        `;
+      el.innerHTML = `
+        <svg viewBox="0 0 36 42" width="36" height="42" style="display: block;">
+          <defs>
+            <linearGradient id="grad-${job.id}" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:${levelColors[job.entry_level]};stop-opacity:1" />
+              <stop offset="100%" style="stop-color:${levelColors[job.entry_level]};stop-opacity:0.7" />
+            </linearGradient>
+            <filter id="glow-${job.id}" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="1.5" result="coloredBlur"/>
+              <feMerge>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+          </defs>
+          <!-- Outer hexagon -->
+          <polygon 
+            points="18,2 34,11 34,31 18,40 2,31 2,11" 
+            fill="url(#grad-${job.id})" 
+            stroke="${levelColors[job.entry_level]}" 
+            stroke-width="1.5"
+            filter="url(#glow-${job.id})"
+          />
+          <!-- Inner hexagon -->
+          <polygon 
+            points="18,8 28,14 28,28 18,34 8,28 8,14" 
+            fill="rgba(0,0,0,0.5)" 
+            stroke="${levelColors[job.entry_level]}" 
+            stroke-width="0.75"
+            stroke-opacity="0.6"
+          />
+          <!-- Center dot with pulse -->
+          <circle cx="18" cy="21" r="4" fill="white" opacity="0.9">
+            <animate attributeName="opacity" values="0.9;0.5;0.9" dur="2s" repeatCount="indefinite"/>
+          </circle>
+        </svg>
+        <!-- Entry level emoji badge -->
+        <div style="
+          position: absolute;
+          bottom: -6px;
+          left: 50%;
+          transform: translateX(-50%);
+          font-size: 9px;
+          background: ${levelColors[job.entry_level]};
+          color: white;
+          padding: 1px 5px;
+          border-radius: 6px;
+          font-weight: 600;
+          white-space: nowrap;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+        ">
+          ${job.entry_level === 'easy' ? '🎯' : job.entry_level === 'moderate' ? '⚡' : '🔥'}
+        </div>
+      `;
 
-        // Create the marker with center anchor for stable positioning
-        const marker = new mapboxgl.Marker({ 
-          element: el, 
-          anchor: 'center'
-        })
-          .setLngLat([markerLng, markerLat])
-          .addTo(map.current!);
+      // Create marker with center anchor - stays locked to coordinates
+      const marker = new mapboxgl.Marker({ 
+        element: el, 
+        anchor: 'center'
+      })
+        .setLngLat([markerLng, markerLat])
+        .addTo(map.current!);
 
         // Create popup - FIXED positioning
         const popupContent = `
@@ -506,7 +505,6 @@ const InteractiveWalesMap = ({
         });
 
         markersRef.current.push(marker);
-      });
     });
   }, [jobs, showMarkers, filterLevel, mapLoaded, onMarkerClick]);
 

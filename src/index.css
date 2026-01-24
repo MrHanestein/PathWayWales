@@ -341,12 +341,41 @@
 
 /* Futuristic marker styles */
 .futuristic-marker {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.2s ease, filter 0.2s ease;
+  will-change: transform;
 }
 
 .futuristic-marker:hover {
-  transform: scale(1.2);
+  transform: scale(1.15);
   z-index: 100 !important;
+}
+
+/* Mapbox marker positioning - ensure markers stay locked to coordinates */
+.mapboxgl-marker {
+  will-change: transform;
+  pointer-events: auto !important;
+}
+
+/* Mapbox popup positioning - stays anchored to geographic coordinates */
+.mapboxgl-popup {
+  z-index: 50 !important;
+  will-change: transform;
+  pointer-events: auto;
+}
+
+.mapboxgl-popup.job-popup {
+  z-index: 60 !important;
+}
+
+.mapboxgl-popup-content {
+  padding: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+
+.mapboxgl-popup-tip {
+  display: none !important;
 }
 
 /* Custom scrollbar for map overlays */
