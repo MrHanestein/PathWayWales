@@ -1,0 +1,171 @@
+import { useState } from 'react';
+import { X, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useAssessment } from '@/hooks/useAssessment';
+import AssessmentProgress from './AssessmentProgress';
+import AboutYouStep from './steps/AboutYouStep';
+import IncomeSecurityStep from './steps/IncomeSecurityStep';
+import LifeSituationStep from './steps/LifeSituationStep';
+import YourGoalStep from './steps/YourGoalStep';
+import TechInterestsStep from './steps/TechInterestsStep';
+import SkillsBaselineStep from './steps/SkillsBaselineStep';
+import StabilityImpactStep from './steps/StabilityImpactStep';
+import ConfidenceCheckStep from './steps/ConfidenceCheckStep';
+import CompletionStep from './steps/CompletionStep';
+
+interface AssessmentWizardProps {
+  onClose: () => void;
+  onComplete: () => void;
+}
+
+const AssessmentWizard = ({ onClose, onComplete }: AssessmentWizardProps) => {
+  const {
+    data,
+    updateData,
+    currentStep,
+    totalSteps,
+    nextStep,
+    prevStep,
+    completeAssessment,
+    loading,
+    saving,
+  } = useAssessment();
+
+  const [isCompleted, setIsCompleted] = useState(false);
+
+  const handleNext = async () => {
+    if (currentStep === totalSteps) {
+      const success = await completeAssessment();
+      if (success) {
+        setIsCompleted(true);
+      }
+    } else {
+      await nextStep();
+    }
+  };
+
+  const handleViewResults = () => {
+    onComplete();
+  };
+
+  const canProceed = () => {
+    switch (currentStep) {
+      case 1:
+        return data.age_band && data.current_job_title && data.years_experience && 
+               data.industry && data.highest_qualification && data.location && data.work_preference;
+      case 2:
+        return data.minimum_salary_needed && data.target_salary && 
+               data.accept_pay_dip && data.financial_runway;
+      case 3:
+        return data.employment_status && data.reason_for_change && 
+               data.family_situation && data.weekly_hours_available && data.learning_budget;
+      case 4:
+        return data.goal_type && data.desired_timeline && data.preferred_entry_route;
+      case 5:
+        return (data.tech_interests || []).length > 0;
+      case 6:
+        return data.digital_comfort_level && data.learning_style && data.existing_proof;
+      case 7:
+        return data.stability_vs_growth;
+      case 8:
+        return data.confidence_level;
+      default:
+        return true;
+    }
+  };
+
+  const renderStep = () => {
+    if (isCompleted) {
+      return <CompletionStep onViewResults={handleViewResults} />;
+    }
+
+    switch (currentStep) {
+      case 1:
+        return <AboutYouStep data={data} updateData={updateData} />;
+      case 2:
+        return <IncomeSecurityStep data={data} updateData={updateData} />;
+      case 3:
+        return <LifeSituationStep data={data} updateData={updateData} />;
+      case 4:
+        return <YourGoalStep data={data} updateData={updateData} />;
+      case 5:
+        return <TechInterestsStep data={data} updateData={updateData} />;
+      case 6:
+        return <SkillsBaselineStep data={data} updateData={updateData} />;
+      case 7:
+        return <StabilityImpactStep data={data} updateData={updateData} />;
+      case 8:
+        return <ConfidenceCheckStep data={data} updateData={updateData} />;
+      default:
+        return null;
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="fixed inset-0 z-50 bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Loading your assessment...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 bg-background flex flex-col">
+      {/* Header */}
+      <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-background/95 backdrop-blur">
+        <h1 className="text-lg font-semibold">Career Assessment</h1>
+        <Button variant="ghost" size="icon" onClick={onClose}>
+          <X className="w-5 h-5" />
+        </Button>
+      </header>
+
+      {/* Progress Bar */}
+      {!isCompleted && (
+        <AssessmentProgress currentStep={currentStep} totalSteps={totalSteps} />
+      )}
+
+      {/* Content */}
+      <main className="flex-1 overflow-y-auto">
+        <div className="max-w-2xl mx-auto px-4 py-6">
+          {renderStep()}
+        </div>
+      </main>
+
+      {/* Footer Navigation */}
+      {!isCompleted && (
+        <footer className="border-t border-border bg-background/95 backdrop-blur px-4 py-4">
+          <div className="max-w-2xl mx-auto flex justify-between items-center">
+            <Button
+              variant="outline"
+              onClick={prevStep}
+              disabled={currentStep === 1 || saving}
+              className="gap-2"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              Back
+            </Button>
+
+            <span className="text-sm text-muted-foreground">
+              Step {currentStep} of {totalSteps}
+            </span>
+
+            <Button
+              onClick={handleNext}
+              disabled={!canProceed() || saving}
+              className="gap-2"
+            >
+              {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+              {currentStep === totalSteps ? 'Complete' : 'Next'}
+              {!saving && currentStep !== totalSteps && <ChevronRight className="w-4 h-4" />}
+            </Button>
+          </div>
+        </footer>
+      )}
+    </div>
+  );
+};
+
+export default AssessmentWizard;

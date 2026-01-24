@@ -14,6 +14,144 @@ export type Database = {
   }
   public: {
     Tables: {
+      assessments: {
+        Row: {
+          accept_pay_dip: string | null
+          age_band: string | null
+          biggest_concern: string | null
+          biggest_immediate_need: string | null
+          biggest_worries: string[] | null
+          completed: boolean | null
+          confidence_level: number | null
+          created_at: string
+          current_job_title: string | null
+          current_salary_band: string | null
+          current_step: number | null
+          desired_timeline: string | null
+          digital_comfort_level: number | null
+          employment_status: string | null
+          existing_proof: string | null
+          family_situation: string | null
+          financial_runway: string | null
+          goal_type: string | null
+          highest_qualification: string | null
+          id: string
+          industry: string | null
+          learning_budget: string | null
+          learning_style: string | null
+          location: string | null
+          minimum_salary_needed: number | null
+          notice_period_status: string | null
+          preferred_entry_route: string | null
+          priority_ranking: Json | null
+          reason_for_change: string | null
+          redundancy_date: string | null
+          role_preferences: string[] | null
+          stability_vs_growth: number | null
+          support_needed: string[] | null
+          target_salary: string | null
+          tech_interests: string[] | null
+          tech_interests_other: string | null
+          tools_used: string[] | null
+          transferable_strengths: string[] | null
+          updated_at: string
+          user_id: string
+          weekly_hours_available: number | null
+          work_preference: string | null
+          years_experience: string | null
+        }
+        Insert: {
+          accept_pay_dip?: string | null
+          age_band?: string | null
+          biggest_concern?: string | null
+          biggest_immediate_need?: string | null
+          biggest_worries?: string[] | null
+          completed?: boolean | null
+          confidence_level?: number | null
+          created_at?: string
+          current_job_title?: string | null
+          current_salary_band?: string | null
+          current_step?: number | null
+          desired_timeline?: string | null
+          digital_comfort_level?: number | null
+          employment_status?: string | null
+          existing_proof?: string | null
+          family_situation?: string | null
+          financial_runway?: string | null
+          goal_type?: string | null
+          highest_qualification?: string | null
+          id?: string
+          industry?: string | null
+          learning_budget?: string | null
+          learning_style?: string | null
+          location?: string | null
+          minimum_salary_needed?: number | null
+          notice_period_status?: string | null
+          preferred_entry_route?: string | null
+          priority_ranking?: Json | null
+          reason_for_change?: string | null
+          redundancy_date?: string | null
+          role_preferences?: string[] | null
+          stability_vs_growth?: number | null
+          support_needed?: string[] | null
+          target_salary?: string | null
+          tech_interests?: string[] | null
+          tech_interests_other?: string | null
+          tools_used?: string[] | null
+          transferable_strengths?: string[] | null
+          updated_at?: string
+          user_id: string
+          weekly_hours_available?: number | null
+          work_preference?: string | null
+          years_experience?: string | null
+        }
+        Update: {
+          accept_pay_dip?: string | null
+          age_band?: string | null
+          biggest_concern?: string | null
+          biggest_immediate_need?: string | null
+          biggest_worries?: string[] | null
+          completed?: boolean | null
+          confidence_level?: number | null
+          created_at?: string
+          current_job_title?: string | null
+          current_salary_band?: string | null
+          current_step?: number | null
+          desired_timeline?: string | null
+          digital_comfort_level?: number | null
+          employment_status?: string | null
+          existing_proof?: string | null
+          family_situation?: string | null
+          financial_runway?: string | null
+          goal_type?: string | null
+          highest_qualification?: string | null
+          id?: string
+          industry?: string | null
+          learning_budget?: string | null
+          learning_style?: string | null
+          location?: string | null
+          minimum_salary_needed?: number | null
+          notice_period_status?: string | null
+          preferred_entry_route?: string | null
+          priority_ranking?: Json | null
+          reason_for_change?: string | null
+          redundancy_date?: string | null
+          role_preferences?: string[] | null
+          stability_vs_growth?: number | null
+          support_needed?: string[] | null
+          target_salary?: string | null
+          tech_interests?: string[] | null
+          tech_interests_other?: string | null
+          tools_used?: string[] | null
+          transferable_strengths?: string[] | null
+          updated_at?: string
+          user_id?: string
+          weekly_hours_available?: number | null
+          work_preference?: string | null
+          years_experience?: string | null
+        }
+        Relationships: []
+      }
       jobs: {
         Row: {
           city: string

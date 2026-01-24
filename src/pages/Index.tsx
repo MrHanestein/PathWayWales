@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import TopNavBar from "@/components/TopNavBar";
 import BottomNavBar from "@/components/BottomNavBar";
 import InteractiveWalesMap from "@/components/InteractiveWalesMap";
@@ -7,19 +7,43 @@ import SearchBar from "@/components/SearchBar";
 import PartnersCarousel from "@/components/PartnersCarousel";
 import JobDetailsModal from "@/components/JobDetailsModal";
 import VoiceCoach from "@/components/VoiceCoach";
+import AssessmentWizard from "@/components/assessment/AssessmentWizard";
 import { useJobs } from "@/hooks/useJobs";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import type { JobMarker } from "@/components/InteractiveWalesMap";
 
 const Index = () => {
+  const { user } = useAuth();
   const [isScanning, setIsScanning] = useState(false);
   const [showMarkers, setShowMarkers] = useState(false);
   const [activeFilter, setActiveFilter] = useState<"easy" | "moderate" | "difficult" | null>(null);
   const [resourcesLocked, setResourcesLocked] = useState(true);
   const [selectedJob, setSelectedJob] = useState<JobMarker | null>(null);
   const [showVoiceCoach, setShowVoiceCoach] = useState(false);
+  const [showAssessment, setShowAssessment] = useState(false);
 
   const { jobs, loading, refetch, getJobCounts } = useJobs();
   const jobCounts = getJobCounts();
+
+  // Check if assessment is completed
+  useEffect(() => {
+    const checkAssessmentStatus = async () => {
+      if (!user) return;
+      
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('assessment_completed')
+        .eq('id', user.id)
+        .single();
+      
+      if (profile?.assessment_completed) {
+        setResourcesLocked(false);
+      }
+    };
+    
+    checkAssessmentStatus();
+  }, [user]);
 
   const handleSearch = () => {
     setIsScanning(true);
@@ -40,8 +64,22 @@ const Index = () => {
     setShowVoiceCoach(true);
   };
 
+  const handleAssessmentComplete = () => {
+    setShowAssessment(false);
+    setResourcesLocked(false);
+  };
+
   if (showVoiceCoach) {
     return <VoiceCoach onClose={() => setShowVoiceCoach(false)} />;
+  }
+
+  if (showAssessment) {
+    return (
+      <AssessmentWizard 
+        onClose={() => setShowAssessment(false)} 
+        onComplete={handleAssessmentComplete}
+      />
+    );
   }
 
   return (
@@ -86,6 +124,7 @@ const Index = () => {
       <BottomNavBar 
         resourcesLocked={resourcesLocked}
         onVoiceClick={() => setShowVoiceCoach(true)}
+        onAssessmentClick={() => setShowAssessment(true)}
       />
     </div>
   );
