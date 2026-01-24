@@ -119,7 +119,7 @@
   }
 
   html, body, #root {
-    @apply h-full overflow-hidden;
+    @apply h-full;
   }
 
   body {
