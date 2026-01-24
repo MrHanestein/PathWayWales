@@ -235,7 +235,7 @@ Many Welsh organizations actively seek to hire locally and provide training.
 - University bursaries for over 25s
 `;
 
-const SYSTEM_PROMPT = `You are a warm, encouraging career coach specializing in helping Welsh people aged 40+ transition into cybersecurity careers. Your name is "Eira" (Welsh for "snow" - pure, fresh starts).
+const BASE_SYSTEM_PROMPT = `You are a warm, encouraging career coach specializing in helping Welsh people aged 40+ transition into cybersecurity careers. Your name is "Eira" (Welsh for "snow" - pure, fresh starts).
 
 ## Your Personality
 - Calm, supportive, and understanding like a trusted friend
@@ -279,8 +279,9 @@ You have deep expertise in:
 - Don't use excessive jargon
 - Don't suggest unrealistic timeframes
 - Don't dismiss concerns about age or technology
-- Don't recommend expensive courses as the first step
+- Don't recommend expensive courses as the first step`;
 
+const GENERIC_CONTEXT = `
 ## Context About the User
 They are likely:
 - Concerned about age discrimination
@@ -296,25 +297,53 @@ interface Message {
   content: string;
 }
 
+// Day-in-the-life simulation scenarios by role
+const SIMULATION_SCENARIOS: Record<string, string> = {
+  'SOC Analyst': `It's 9:15 AM on a Tuesday at Admiral Group's Cardiff office. You've been working as a Junior SOC Analyst for 3 months. You're at your desk with a coffee when your SIEM dashboard flashes amber: "Multiple failed login attempts detected from unusual IP address on CFO's account - 47 attempts in 2 minutes."`,
+  
+  'GRC Analyst': `It's 10:30 AM on a Monday at the Welsh Government offices in Cathays Park. You're a GRC Analyst, 4 months into the role. An email arrives from the CTO: "We have an ISO 27001 surveillance audit in 3 weeks. The auditors want to see our updated risk register and evidence of our access review process."`,
+  
+  'Security Awareness Specialist': `It's 2:00 PM on a Wednesday at NHS Wales. You're the Security Awareness Lead. Your phishing simulation from last week just completed - 23% of staff clicked the test link. The IT Director wants you in a meeting in 30 minutes to discuss "the concerning results."`,
+  
+  'Cloud Security Engineer': `It's 11:00 AM on a Thursday at DVLA in Swansea. You're a Cloud Security Engineer, 6 months in. A developer Slack message arrives: "We need to deploy a new public API endpoint by Friday. Can you approve the security config?" The attached CloudFormation template shows an S3 bucket with public read access.`,
+  
+  'Data Analyst': `It's 9:00 AM on a Monday at Companies House in Cardiff. You're a Data Analyst on the cyber team. Your manager asks: "We had 3 suspected data breaches reported last month. Can you analyse the incident logs and give me a report on patterns and root causes by end of day?"`,
+  
+  'IT Support Technician': `It's 3:30 PM on a Friday at Legal & General in Cardiff. You're an IT Support Technician with security responsibilities. A senior manager calls: "I just got an email from 'IT Support' asking me to verify my credentials on this link. I clicked it but nothing happened. Should I be worried?"`,
+  
+  'default': `It's 9:30 AM on a Wednesday at a Cardiff tech company. You've been in your new cybersecurity role for 3 months. An alert appears on your screen: unusual activity detected on the company network. Multiple devices are trying to connect to an external IP address that's not on the approved list.`
+};
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { messages, type = 'chat' } = await req.json();
+    const { messages, type = 'chat', userContext, roleTitle } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
+    // Build the system prompt based on whether we have user context
+    let systemPrompt = BASE_SYSTEM_PROMPT;
+    
+    if (userContext) {
+      // User has completed assessment - use personalized context
+      systemPrompt += `\n\n${userContext}`;
+    } else {
+      // No assessment - use generic context
+      systemPrompt += GENERIC_CONTEXT;
+    }
+
+    // Add knowledge base
+    systemPrompt += `\n\n## Knowledge Base\n${CYBER_KNOWLEDGE_BASE}`;
+
     // Build conversation with RAG context
     const conversationMessages: Message[] = [
-      { 
-        role: 'system', 
-        content: `${SYSTEM_PROMPT}\n\n## Knowledge Base\n${CYBER_KNOWLEDGE_BASE}` 
-      },
+      { role: 'system', content: systemPrompt },
       ...messages
     ];
 
@@ -337,10 +366,44 @@ The user is asking about a technical term. Explain it:
 2. With a relatable real-world analogy
 3. Why it matters for their career journey
 
-Keep it simple, warm, and encouraging.`;
+Keep it simple, warm, and encouraging. Never make them feel silly for asking.`;
+    }
+
+    if (type === 'day-simulation') {
+      const scenario = SIMULATION_SCENARIOS[roleTitle || 'default'] || SIMULATION_SCENARIOS['default'];
+      
+      conversationMessages[0].content += `\n\n## Special Mode: Day-in-the-Life Simulation
+
+You are running an immersive, interactive simulation to help the user experience what it's like to work in this role. This is a safe space to learn by doing.
+
+### THE SCENARIO
+${scenario}
+
+### SIMULATION RULES
+1. **Set the scene vividly** - help them feel like they're really there
+2. **Present 3 clear choices** - make them realistic options a professional would consider
+3. **After each choice, provide**:
+   - What happens as a result
+   - What they learned
+   - How their background/skills applied
+   - The next decision point OR conclusion
+4. **Run for 3-4 decision points** then conclude with:
+   - Summary of what they did well
+   - Skills they demonstrated
+   - How this connects to their transferable experience
+   - An encouraging message about their potential
+
+### TONE
+- Make it feel real but safe - this is practice, not a test
+- Celebrate good thinking, gently guide if they struggle
+- Reference their actual background when praising their choices
+- End on a confidence-boosting note
+
+Start the simulation now with a vivid scene-setting and the first three choices.`;
     }
 
     if (type === 'simulation') {
+      // Legacy simulation mode - keep for backwards compatibility
       conversationMessages[0].content += `\n\n## Special Mode: Audio Micro-Simulation
 You're running a brief choose-your-own-adventure scenario. Set the scene:
 1. Give them a realistic cyber scenario they might face in a role
