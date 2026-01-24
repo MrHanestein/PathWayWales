@@ -198,7 +198,14 @@ export const useAssessment = () => {
   }, [currentStep]);
 
   const completeAssessment = useCallback(async () => {
-    if (!user) return false;
+    if (!user) {
+      toast({
+        title: "Login required",
+        description: "Please sign in to save your assessment and unlock resources.",
+        variant: "destructive",
+      });
+      return false;
+    }
     setSaving(true);
 
     try {
