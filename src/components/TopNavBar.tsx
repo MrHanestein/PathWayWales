@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Settings, DoorOpen, DoorClosed, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
@@ -11,18 +12,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-interface TopNavBarProps {
-  onSettingsClick?: () => void;
-}
-
-const TopNavBar = ({ onSettingsClick }: TopNavBarProps) => {
+const TopNavBar = () => {
+  const navigate = useNavigate();
   const { user, loading, signOut } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
 
   const handleAuthClick = () => {
-    if (user) {
-      // User is logged in, show dropdown menu
-    } else {
+    if (!user) {
       setShowAuthModal(true);
     }
   };
@@ -45,7 +41,7 @@ const TopNavBar = ({ onSettingsClick }: TopNavBarProps) => {
           <Button
             variant="ghost"
             size="icon"
-            onClick={onSettingsClick}
+            onClick={() => navigate('/settings')}
             className="text-muted-foreground hover:text-foreground hover:bg-muted"
           >
             <Settings className="w-5 h-5" />
