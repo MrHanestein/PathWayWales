@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Check, Sparkles, TrendingUp, Shield, Briefcase } from 'lucide-react';
+import { Check, Sparkles, TrendingUp, Shield, Briefcase, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface CompletionStepProps {
   onViewResults: () => void;
+  onViewResources: () => void;
 }
 
-const CompletionStep = ({ onViewResults }: CompletionStepProps) => {
+const CompletionStep = ({ onViewResults, onViewResources }: CompletionStepProps) => {
   const [showCheck, setShowCheck] = useState(false);
   const [showMessage, setShowMessage] = useState(false);
   const [showFeatures, setShowFeatures] = useState(false);
@@ -90,15 +91,27 @@ const CompletionStep = ({ onViewResults }: CompletionStepProps) => {
         </p>
       </div>
 
-      {/* View Results Button */}
-      <Button
-        size="lg"
-        onClick={onViewResults}
-        className={`mt-8 px-8 transition-all duration-500 ${showButton ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}
-      >
-        View Your Pathway
-        <Sparkles className="w-4 h-4 ml-2" />
-      </Button>
+      {/* Dual CTA Buttons */}
+      <div className={`flex flex-col sm:flex-row gap-4 mt-8 w-full max-w-md transition-all duration-500 ${showButton ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
+        <Button
+          size="lg"
+          onClick={onViewResults}
+          variant="outline"
+          className="flex-1 px-6"
+        >
+          <TrendingUp className="w-4 h-4 mr-2" />
+          View Your Pathway
+        </Button>
+        
+        <Button
+          size="lg"
+          onClick={onViewResources}
+          className="flex-1 px-6"
+        >
+          <BookOpen className="w-4 h-4 mr-2" />
+          Explore Resources
+        </Button>
+      </div>
     </div>
   );
 };

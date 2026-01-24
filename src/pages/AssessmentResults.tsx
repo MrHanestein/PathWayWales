@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, MapPin, Building2, Sparkles } from 'lucide-react';
+import { ArrowLeft, MapPin, Building2, Sparkles, AlertTriangle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -40,9 +40,9 @@ const AssessmentResults = () => {
 
         if (error) throw error;
 
-        if (!existing) {
-          // No completed assessment, redirect to home
-          navigate('/');
+      if (!existing) {
+          // No completed assessment found - show helpful UI instead of redirecting
+          setLoading(false);
           return;
         }
 
@@ -118,9 +118,27 @@ const AssessmentResults = () => {
   if (!recommendation || !assessmentData) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-muted-foreground mb-4">No assessment data found</p>
-          <Button onClick={() => navigate('/')}>Return Home</Button>
+        <div className="text-center max-w-md mx-auto p-6">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-amber-500/20 flex items-center justify-center">
+            <AlertTriangle className="w-8 h-8 text-amber-500" />
+          </div>
+          <h2 className="text-xl font-bold mb-2">Assessment Not Found</h2>
+          <p className="text-muted-foreground mb-6">
+            We couldn't find a completed assessment. This might be because the assessment is still saving, or you haven't completed it yet.
+          </p>
+          <div className="space-y-3">
+            <Button onClick={() => navigate('/')} className="w-full">
+              Return Home
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => window.location.reload()} 
+              className="w-full gap-2"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Refresh Page
+            </Button>
+          </div>
         </div>
       </div>
     );

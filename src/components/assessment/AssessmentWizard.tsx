@@ -4,6 +4,8 @@ import { X, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAssessment } from '@/hooks/useAssessment';
 import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import AuthModal from '@/components/AuthModal';
 import AssessmentProgress from './AssessmentProgress';
 import AboutYouStep from './steps/AboutYouStep';
@@ -24,6 +26,7 @@ interface AssessmentWizardProps {
 const AssessmentWizard = ({ onClose, onComplete }: AssessmentWizardProps) => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { toast } = useToast();
   const {
     data,
     updateData,
@@ -38,6 +41,7 @@ const AssessmentWizard = ({ onClose, onComplete }: AssessmentWizardProps) => {
 
   const [isCompleted, setIsCompleted] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
 
   const handleNext = async () => {
     if (currentStep === totalSteps) {
@@ -45,8 +49,13 @@ const AssessmentWizard = ({ onClose, onComplete }: AssessmentWizardProps) => {
         setShowAuthModal(true);
         return;
       }
+      console.log('[Wizard] Starting assessment completion...');
       const success = await completeAssessment();
+      console.log('[Wizard] Completion result:', success);
+      
       if (success) {
+        // Add a small delay to ensure database write is committed
+        await new Promise(resolve => setTimeout(resolve, 500));
         setIsCompleted(true);
       }
     } else {
@@ -54,10 +63,51 @@ const AssessmentWizard = ({ onClose, onComplete }: AssessmentWizardProps) => {
     }
   };
 
-  const handleViewResults = () => {
-    onComplete();
-    navigate('/results');
+  const verifyAndNavigate = async (destination: '/results' | '/resources') => {
+    if (!user) {
+      navigate(destination);
+      return;
+    }
+
+    setIsNavigating(true);
+    
+    try {
+      // Verify the assessment is saved before navigating
+      const { data: verified, error } = await supabase
+        .from('assessments')
+        .select('id, completed')
+        .eq('user_id', user.id)
+        .eq('completed', true)
+        .maybeSingle();
+      
+      console.log('[Wizard] Navigation verification:', { verified, error });
+      
+      if (error) throw error;
+      
+      if (!verified) {
+        toast({
+          title: "Still saving...",
+          description: "Please wait a moment and try again.",
+        });
+        return;
+      }
+      
+      onComplete();
+      navigate(destination);
+    } catch (error) {
+      console.error('[Wizard] Navigation verification failed:', error);
+      toast({
+        title: "Error",
+        description: "Could not verify your assessment. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsNavigating(false);
+    }
   };
+
+  const handleViewResults = () => verifyAndNavigate('/results');
+  const handleViewResources = () => verifyAndNavigate('/resources');
 
   const canProceed = () => {
     switch (currentStep) {
@@ -87,7 +137,12 @@ const AssessmentWizard = ({ onClose, onComplete }: AssessmentWizardProps) => {
 
   const renderStep = () => {
     if (isCompleted) {
-      return <CompletionStep onViewResults={handleViewResults} />;
+      return (
+        <CompletionStep 
+          onViewResults={handleViewResults}
+          onViewResources={handleViewResources}
+        />
+      );
     }
 
     switch (currentStep) {
@@ -171,12 +226,12 @@ const AssessmentWizard = ({ onClose, onComplete }: AssessmentWizardProps) => {
 
               <Button
                 onClick={handleNext}
-                disabled={!canProceed() || saving}
+                disabled={!canProceed() || saving || isNavigating}
                 className="gap-2"
               >
-                {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+                {(saving || isNavigating) && <Loader2 className="w-4 h-4 animate-spin" />}
                 {currentStep === totalSteps ? 'Complete' : 'Next'}
-                {!saving && currentStep !== totalSteps && <ChevronRight className="w-4 h-4" />}
+                {!saving && !isNavigating && currentStep !== totalSteps && <ChevronRight className="w-4 h-4" />}
               </Button>
             </div>
           </div>

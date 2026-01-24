@@ -30,20 +30,34 @@ const Index = () => {
   const { jobs, loading, refetch, getJobCounts } = useJobs();
   const jobCounts = getJobCounts();
 
-  // Check if assessment is completed
+  // Check if assessment is completed (check both sources)
   useEffect(() => {
     const checkAssessmentStatus = async () => {
-      if (!user) return;
-      
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('assessment_completed')
-        .eq('id', user.id)
-        .single();
-      
-      if (profile?.assessment_completed) {
-        setResourcesLocked(false);
+      if (!user) {
+        setResourcesLocked(true);
+        return;
       }
+      
+      // Check both: assessment record AND profile flag
+      const [assessmentResult, profileResult] = await Promise.all([
+        supabase
+          .from('assessments')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('completed', true)
+          .maybeSingle(),
+        supabase
+          .from('profiles')
+          .select('assessment_completed')
+          .eq('id', user.id)
+          .maybeSingle(),
+      ]);
+      
+      const hasCompletedAssessment = !!assessmentResult.data;
+      const profileFlagSet = profileResult.data?.assessment_completed;
+      
+      // Unlock if either is true
+      setResourcesLocked(!hasCompletedAssessment && !profileFlagSet);
     };
     
     checkAssessmentStatus();
@@ -71,7 +85,6 @@ const Index = () => {
   const handleAssessmentComplete = () => {
     setShowAssessment(false);
     setResourcesLocked(false);
-    navigate('/results');
   };
 
   const handleAssessmentClick = () => {
