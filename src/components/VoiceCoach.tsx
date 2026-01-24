@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { Mic, MicOff, Volume2, VolumeX, Send, Loader2, Sparkles, ArrowLeft, BookOpen, Lightbulb, Target } from 'lucide-react';
+import { Mic, MicOff, Volume2, VolumeX, Send, Loader2, User, ArrowLeft } from 'lucide-react';
+import { useScribe } from '@elevenlabs/react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
@@ -17,6 +18,7 @@ interface VoiceCoachProps {
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/cyber-coach-chat`;
 const TTS_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts`;
+const STT_TOKEN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-scribe-token`;
 
 const VoiceCoach = ({ onClose }: VoiceCoachProps) => {
   const [messages, setMessages] = useState<Message[]>([
@@ -30,11 +32,33 @@ const VoiceCoach = ({ onClose }: VoiceCoachProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [audioEnabled, setAudioEnabled] = useState(true);
-  const [activeMode, setActiveMode] = useState<'chat' | 'pathway' | 'dejargon' | 'simulation'>('chat');
+  const [isRecording, setIsRecording] = useState(false);
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  // ElevenLabs Speech-to-Text hook
+  const scribe = useScribe({
+    modelId: 'scribe_v2_realtime',
+    onPartialTranscript: (data) => {
+      if (data.text) {
+        setInput(prev => {
+          // Replace partial transcript at the end
+          const baseText = prev.replace(/\[listening...\].*$/, '').trim();
+          return baseText ? `${baseText} ${data.text}` : data.text;
+        });
+      }
+    },
+    onCommittedTranscript: (data) => {
+      if (data.text) {
+        setInput(prev => {
+          const baseText = prev.replace(/\[listening...\].*$/, '').trim();
+          return baseText ? `${baseText} ${data.text}` : data.text;
+        });
+      }
+    },
+  });
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -44,8 +68,17 @@ const VoiceCoach = ({ onClose }: VoiceCoachProps) => {
     scrollToBottom();
   }, [messages]);
 
+  // Clean up recording when component unmounts
+  useEffect(() => {
+    return () => {
+      if (scribe.isConnected) {
+        scribe.disconnect();
+      }
+    };
+  }, [scribe]);
+
   // Stream chat response
-  const streamChat = async (userMessages: Message[], type: string = 'chat') => {
+  const streamChat = async (userMessages: Message[]) => {
     const response = await fetch(CHAT_URL, {
       method: 'POST',
       headers: {
@@ -54,7 +87,7 @@ const VoiceCoach = ({ onClose }: VoiceCoachProps) => {
       },
       body: JSON.stringify({ 
         messages: userMessages.map(m => ({ role: m.role, content: m.content })),
-        type 
+        type: 'chat'
       }),
     });
 
@@ -184,12 +217,70 @@ const VoiceCoach = ({ onClose }: VoiceCoachProps) => {
     setIsSpeaking(false);
   };
 
+  // Start/stop voice recording
+  const toggleRecording = useCallback(async () => {
+    if (isRecording) {
+      // Stop recording
+      scribe.disconnect();
+      setIsRecording(false);
+    } else {
+      // Start recording
+      try {
+        // Get token from edge function
+        const tokenResponse = await fetch(STT_TOKEN_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+        });
+
+        if (!tokenResponse.ok) {
+          throw new Error('Failed to get transcription token');
+        }
+
+        const { token } = await tokenResponse.json();
+        
+        if (!token) {
+          throw new Error('No token received');
+        }
+
+        await scribe.connect({
+          token,
+          microphone: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          },
+        });
+
+        setIsRecording(true);
+        setInput(prev => prev + (prev ? ' ' : '') + '[listening...]');
+      } catch (error) {
+        console.error('Failed to start recording:', error);
+        toast({
+          variant: 'destructive',
+          title: 'Microphone Error',
+          description: error instanceof Error ? error.message : 'Failed to start voice input'
+        });
+      }
+    }
+  }, [isRecording, scribe, toast]);
+
   const handleSend = useCallback(async () => {
-    if (!input.trim() || isLoading) return;
+    const cleanInput = input.replace(/\[listening...\]/g, '').trim();
+    if (!cleanInput || isLoading) return;
+
+    // Stop recording if active
+    if (isRecording) {
+      scribe.disconnect();
+      setIsRecording(false);
+    }
 
     const userMessage: Message = {
       role: 'user',
-      content: input.trim(),
+      content: cleanInput,
       timestamp: new Date()
     };
 
@@ -198,14 +289,7 @@ const VoiceCoach = ({ onClose }: VoiceCoachProps) => {
     setIsLoading(true);
 
     try {
-      const typeMap = {
-        chat: 'chat',
-        pathway: 'pathway-preview',
-        dejargon: 'dejargonise',
-        simulation: 'simulation'
-      };
-
-      const response = await streamChat([...messages, userMessage], typeMap[activeMode]);
+      const response = await streamChat([...messages, userMessage]);
       
       if (audioEnabled && response) {
         await speakText(response);
@@ -219,7 +303,7 @@ const VoiceCoach = ({ onClose }: VoiceCoachProps) => {
     } finally {
       setIsLoading(false);
     }
-  }, [input, isLoading, messages, audioEnabled, activeMode, toast]);
+  }, [input, isLoading, messages, audioEnabled, isRecording, scribe, toast]);
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -227,27 +311,6 @@ const VoiceCoach = ({ onClose }: VoiceCoachProps) => {
       handleSend();
     }
   };
-
-  const quickActions = [
-    { 
-      label: 'Pathway Preview', 
-      icon: Target, 
-      mode: 'pathway' as const,
-      prompt: "I'd like to explore which cybersecurity pathway might suit me. I can share a bit about my background."
-    },
-    { 
-      label: 'Explain Jargon', 
-      icon: BookOpen, 
-      mode: 'dejargon' as const,
-      prompt: "Can you explain what SOC, SIEM, and IAM mean in plain English?"
-    },
-    { 
-      label: 'Try a Scenario', 
-      icon: Lightbulb, 
-      mode: 'simulation' as const,
-      prompt: "I'd like to try a practice scenario to see what working in cyber might be like."
-    },
-  ];
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-background">
@@ -259,7 +322,7 @@ const VoiceCoach = ({ onClose }: VoiceCoachProps) => {
           </Button>
           <div className="flex items-center gap-2">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/80 to-primary flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-primary-foreground" />
+              <User className="w-5 h-5 text-primary-foreground" />
             </div>
             <div>
               <h2 className="font-semibold text-foreground">Eira - Career Coach</h2>
@@ -283,25 +346,6 @@ const VoiceCoach = ({ onClose }: VoiceCoachProps) => {
             <VolumeX className="w-5 h-5 text-muted-foreground" />
           )}
         </Button>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="px-4 py-2 border-b border-border flex gap-2 overflow-x-auto">
-        {quickActions.map((action) => (
-          <Button
-            key={action.mode}
-            variant={activeMode === action.mode ? 'default' : 'outline'}
-            size="sm"
-            className="whitespace-nowrap gap-1.5"
-            onClick={() => {
-              setActiveMode(action.mode);
-              setInput(action.prompt);
-            }}
-          >
-            <action.icon className="w-4 h-4" />
-            {action.label}
-          </Button>
-        ))}
       </div>
 
       {/* Messages */}
@@ -349,13 +393,29 @@ const VoiceCoach = ({ onClose }: VoiceCoachProps) => {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyPress}
-            placeholder="Ask about cyber careers, explain jargon, or share your background..."
+            placeholder="Ask about cyber careers, or tap the mic to speak..."
             className="min-h-[44px] max-h-32 resize-none bg-muted/50 border-border"
             disabled={isLoading}
           />
           <Button
+            onClick={toggleRecording}
+            variant={isRecording ? 'destructive' : 'outline'}
+            size="icon"
+            className={cn(
+              "h-11 w-11 shrink-0",
+              isRecording && "animate-pulse"
+            )}
+            disabled={isLoading}
+          >
+            {isRecording ? (
+              <MicOff className="w-5 h-5" />
+            ) : (
+              <Mic className="w-5 h-5" />
+            )}
+          </Button>
+          <Button
             onClick={handleSend}
-            disabled={!input.trim() || isLoading}
+            disabled={!input.replace(/\[listening...\]/g, '').trim() || isLoading}
             className="h-11 px-4"
           >
             {isLoading ? (
@@ -366,7 +426,7 @@ const VoiceCoach = ({ onClose }: VoiceCoachProps) => {
           </Button>
         </div>
         <p className="text-[10px] text-muted-foreground mt-2 text-center">
-          {audioEnabled ? '🔊 Voice responses enabled' : '🔇 Voice responses disabled'} • Powered by Lovable AI
+          {isRecording ? '🔴 Recording... tap mic to stop' : audioEnabled ? '🔊 Voice responses enabled' : '🔇 Voice responses disabled'} • Powered by Lovable AI
         </p>
       </div>
     </div>

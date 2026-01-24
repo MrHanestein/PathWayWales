@@ -122,6 +122,15 @@ const InteractiveWalesMap = ({
 
     map.current.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');
     
+    // Close popups on zoom/pan to prevent misalignment
+    map.current.on('zoomstart', () => {
+      popupRef.current?.remove();
+    });
+    
+    map.current.on('dragstart', () => {
+      popupRef.current?.remove();
+    });
+    
     map.current.on('load', () => {
       setMapLoaded(true);
       
@@ -376,10 +385,10 @@ const InteractiveWalesMap = ({
           </div>
         `;
 
-        // Create the marker with proper anchor
+        // Create the marker with center anchor for stable positioning
         const marker = new mapboxgl.Marker({ 
           element: el, 
-          anchor: 'bottom'
+          anchor: 'center'
         })
           .setLngLat([markerLng, markerLat])
           .addTo(map.current!);
@@ -449,7 +458,7 @@ const InteractiveWalesMap = ({
         const popup = new mapboxgl.Popup({
           closeButton: false,
           closeOnClick: false,
-          offset: [0, -50],
+          offset: [0, -30],
           anchor: 'bottom',
           className: 'job-popup',
           maxWidth: 'none'
@@ -730,6 +739,9 @@ const InteractiveWalesMap = ({
       )}
 
       <style>{`
+        .mapboxgl-popup {
+          z-index: 50 !important;
+        }
         .mapboxgl-popup-content {
           background: transparent !important;
           padding: 0 !important;
@@ -744,6 +756,7 @@ const InteractiveWalesMap = ({
         }
         .futuristic-marker {
           transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), filter 0.3s ease;
+          will-change: transform;
         }
         @keyframes marker-orbit {
           from { transform: rotate(0deg); }
