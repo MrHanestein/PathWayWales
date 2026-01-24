@@ -200,19 +200,6 @@ const InteractiveWalesMap = ({
     };
   }, []);
 
-  // Handle container resizing (Lovable UI animations, panel changes)
-  useEffect(() => {
-    if (!map.current || !mapContainer.current) return;
-
-    const resizeObserver = new ResizeObserver(() => {
-      map.current?.resize();
-    });
-
-    resizeObserver.observe(mapContainer.current);
-    
-    return () => resizeObserver.disconnect();
-  }, [mapLoaded]);
-
   // Add Welsh regions with colors
   const addWelshRegions = (mapInstance: mapboxgl.Map) => {
     const regions = [
@@ -296,21 +283,16 @@ const InteractiveWalesMap = ({
       let markerLng: number;
       let markerLat: number;
 
-      // Priority: use job's stored lat/lng ONLY if they are valid numbers
-      const hasJobCoords = 
-        Number.isFinite(job.lng as number) && 
-        Number.isFinite(job.lat as number);
-
-      if (hasJobCoords) {
-        markerLng = job.lng as number;
-        markerLat = job.lat as number;
+      if (job.lat !== null && job.lng !== null) {
+        // Use the job's actual coordinates from database
+        markerLng = job.lng;
+        markerLat = job.lat;
       } else {
         // Fallback to city coordinates with offset for multiple jobs in same city
         const coords = cityCoordinates[job.city];
         if (!coords) return;
 
-        // IMPORTANT: use filteredJobs so offsets stay consistent when filtering
-        const cityJobs = filteredJobs.filter(j => j.city === job.city);
+        const cityJobs = jobs.filter(j => j.city === job.city);
         const cityIndex = cityJobs.findIndex(j => j.id === job.id);
         const angle = (cityIndex * 360) / Math.max(cityJobs.length, 1);
         const radius = 0.012 * Math.min(cityIndex, 5);
@@ -501,6 +483,7 @@ const InteractiveWalesMap = ({
         });
 
         el.addEventListener('click', () => {
+          const cityCoord = cityCoordinates[job.city];
           const jobMarker: JobMarker = {
             id: job.id,
             city: job.city,
@@ -515,8 +498,8 @@ const InteractiveWalesMap = ({
             description: job.description,
             skills: job.skills,
             posted_date: job.posted_date,
-            lng: markerLng,  // Use actual marker position
-            lat: markerLat,  // Use actual marker position
+            lng: cityCoord?.[0],
+            lat: cityCoord?.[1],
           };
           onMarkerClick?.(jobMarker);
         });

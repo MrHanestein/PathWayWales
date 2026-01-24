@@ -1,11 +1,10 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { Mic, MicOff, Volume2, VolumeX, Send, Loader2, User, ArrowLeft, Play } from 'lucide-react';
+import { Mic, MicOff, Volume2, VolumeX, Send, Loader2, User, ArrowLeft } from 'lucide-react';
 import { useScribe } from '@elevenlabs/react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { ToastAction } from '@/components/ui/toast';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -37,22 +36,7 @@ const VoiceCoach = ({ onClose }: VoiceCoachProps) => {
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const audioContextUnlocked = useRef(false);
   const { toast } = useToast();
-
-  // Unlock audio context on user gesture to enable autoplay
-  const unlockAudioContext = useCallback(async () => {
-    if (audioContextUnlocked.current) return;
-    
-    // Play a silent audio clip immediately on user gesture
-    const silentAudio = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=');
-    try {
-      await silentAudio.play();
-      audioContextUnlocked.current = true;
-    } catch (e) {
-      console.log('Audio unlock failed, will retry on next gesture');
-    }
-  }, []);
 
   // ElevenLabs Speech-to-Text hook
   const scribe = useScribe({
@@ -218,24 +202,7 @@ const VoiceCoach = ({ onClose }: VoiceCoachProps) => {
         URL.revokeObjectURL(audioUrl);
       };
       
-      try {
-        await audio.play();
-      } catch (playError) {
-        console.warn('Autoplay blocked:', playError);
-        setIsSpeaking(false);
-        toast({
-          title: "Tap to hear response",
-          description: "Your browser blocked autoplay.",
-          action: (
-            <ToastAction altText="Play audio" onClick={() => {
-              audio.play().catch(console.error);
-              setIsSpeaking(true);
-            }}>
-              <Play className="w-4 h-4 mr-1" /> Play
-            </ToastAction>
-          ),
-        });
-      }
+      await audio.play();
     } catch (error) {
       console.error('TTS failed:', error);
       setIsSpeaking(false);
@@ -305,9 +272,6 @@ const VoiceCoach = ({ onClose }: VoiceCoachProps) => {
     const cleanInput = input.replace(/\[listening...\]/g, '').trim();
     if (!cleanInput || isLoading) return;
 
-    // Unlock audio context immediately on user gesture
-    await unlockAudioContext();
-
     // Stop recording if active
     if (isRecording) {
       scribe.disconnect();
@@ -339,7 +303,7 @@ const VoiceCoach = ({ onClose }: VoiceCoachProps) => {
     } finally {
       setIsLoading(false);
     }
-  }, [input, isLoading, messages, audioEnabled, isRecording, scribe, toast, unlockAudioContext]);
+  }, [input, isLoading, messages, audioEnabled, isRecording, scribe, toast]);
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
