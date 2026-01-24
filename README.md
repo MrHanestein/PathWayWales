@@ -1,73 +1,174 @@
-# Welcome to your Lovable project
+# 🏴󠁧󠁢󠁷󠁬󠁳󠁿 PathwayWales
 
-## Project info
+> **AI-Powered Career Transition Platform for Adults 40+ in Wales**
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+[![Live Demo](https://img.shields.io/badge/Demo-Live-00B894?style=for-the-badge)](https://pathwaywales.lovable.app)
+[![Built With](https://img.shields.io/badge/Built%20With-React-61DAFB?style=for-the-badge&logo=react)](https://react.dev)
+[![Hackathon](https://img.shields.io/badge/Cardiff%20AI-Challenge%202026-FF6B6B?style=for-the-badge)](https://cardiffai.com)
 
-## How can I edit this code?
+---
 
-There are several ways of editing your application.
+## 🎯 The Problem
 
-**Use Lovable**
+**67% of adults 45+ report confidence barriers** to career change. Despite bringing valuable experience, they face:
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+- ❌ No clear pathways designed for their life stage
+- ❌ £8,000+ bootcamp costs — too risky with mortgages/families  
+- ❌ Age bias in job descriptions and training programs
+- ❌ Overwhelming free resources with no direction
 
-Changes made via Lovable will be committed automatically to this repo.
+## 💡 Our Solution
 
-**Use your preferred IDE**
+PathwayWales helps adults 40+ discover how their **existing experience already fits into tech**.
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+Unlike generic courses or expensive bootcamps, we provide:
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+- ✅ **Personalized career pathways** based on your background
+- ✅ **Realistic salary data** from official UK sources
+- ✅ **AI/automation risk indicators** for future-proof decisions
+- ✅ **Wales-focused job map** with entry difficulty ratings
+- ✅ **Staged, low-risk progression** that fits your life
 
-Follow these steps:
+---
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+## 🖥️ Live Demo
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+**👉 [https://pathwaywales.lovable.app](https://pathwaywales.lovable.app)**
 
-# Step 3: Install the necessary dependencies.
-npm i
+---
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+## ✨ Features
+
+### 🗺️ Interactive Wales Job Map
+- Color-coded markers (🟢 Easy | 🟠 Moderate | 🔴 Hard)
+- Click for job details, requirements, and salary
+- Scanning animation search
+
+### 📋 8-Page Smart Assessment
+- Income & financial constraints
+- Redundancy support (with Gov.UK links)
+- Life situation awareness
+- AI/automation concerns
+- Confidence tracking
+
+### 📚 Personalized Learning Pathways
+- Phase 1: Foundations (Free resources)
+- Phase 2: Core Skills (Projects)
+- Phase 3: Certification & Job Prep
+- XP points and streak gamification
+
+### 🤖 AI Career Coach
+- Chat-based guidance
+- Voice interface (MVP: simulated)
+- Personalized recommendations
+
+### 👥 Network & Referrals
+- Mentors who've made the transition
+- Referral job opportunities
+- Community stats
+
+---
+
+## 🛠️ Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Frontend | React + TypeScript |
+| Styling | Tailwind CSS |
+| Icons | Lucide React |
+| State | localStorage |
+| Hosting | Lovable.app |
+
+---
+
+## 📊 Data Sources
+
+| Data | Source |
+|------|--------|
+| Salary Ranges | [ONS ASHE](https://www.ons.gov.uk/ashe) |
+| Automation Risk | [ONS Research](https://www.ons.gov.uk) |
+| Job Trends | [WEF Future of Jobs 2025](https://www.weforum.org) |
+| Redundancy Rights | [Gov.UK](https://www.gov.uk/redundancy-your-rights) |
+
+---
+
+## 🚀 Quick Start
+
+```bash
+# Clone the repo
+git clone https://github.com/pathwaywales/pathwaywales.git
+
+# Install dependencies
+npm install
+
+# Run development server
 npm run dev
+
+# Build for production
+npm run build
 ```
 
-**Edit a file directly in GitHub**
+---
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## 📁 Project Structure
 
-**Use GitHub Codespaces**
+```
+src/
+├── components/     # Reusable UI components
+├── pages/          # Main page components
+├── data/           # Static data (jobs, resources, salaries)
+├── hooks/          # Custom React hooks
+└── App.tsx         # Main app component
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+---
 
-## What technologies are used for this project?
+## 🎯 Validation Metrics
 
-This project is built with:
+| Metric | Target | Status |
+|--------|--------|--------|
+| Landing page conversion | 20-30% | 🔄 Measuring |
+| Assessment completion | 70%+ | 🔄 Measuring |
+| User confidence improvement | +30% | 🔄 Measuring |
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+---
 
-## How can I deploy this project?
+## 🗓️ Roadmap
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+- [x] MVP with mock data
+- [ ] Real AI coach (OpenAI/Anthropic)
+- [ ] Live job feed (Adzuna API)
+- [ ] User authentication
+- [ ] Mobile app
+- [ ] Working Wales partnership
 
-## Can I connect a custom domain to my Lovable project?
+---
 
-Yes, you can!
+## 👥 Team
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+| Name | Role |
+|------|------|
+| **David** | Tech Lead |
+| **Osian** | Growth & Ops |
+| **Andrew** | Content & UX |
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+---
+
+## 📄 License
+
+MIT License - see [LICENSE](LICENSE) for details.
+
+---
+
+## 🙏 Acknowledgments
+
+- Cardiff AI Challenge organizers
+- Welsh tech community
+- All career changers who inspired this project
+
+---
+
+<p align="center">
+  <strong>Built with 💚 in Wales</strong><br>
+  <a href="https://pathwaywales.lovable.app">pathwaywales.lovable.app</a>
+</p>
