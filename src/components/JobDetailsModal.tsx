@@ -1,8 +1,47 @@
-import { X, MapPin, Building2, Briefcase, GraduationCap, Clock, DollarSign, Sparkles, ExternalLink } from "lucide-react";
+import { X, MapPin, Building2, Briefcase, GraduationCap, Clock, DollarSign, Sparkles, ExternalLink, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { JobMarker } from "@/components/FuturisticWalesMap";
+
+// Valid job board domains for direct links
+const JOB_BOARD_DOMAINS = [
+  'indeed.co.uk', 'indeed.com',
+  'reed.co.uk',
+  'linkedin.com',
+  'totaljobs.com',
+  'cwjobs.co.uk',
+  'gov.wales', 'gov.uk',
+  'glassdoor.co.uk', 'glassdoor.com',
+  'monster.co.uk'
+];
+
+function isValidJobBoardUrl(url: string | null | undefined): boolean {
+  if (!url) return false;
+  try {
+    const hostname = new URL(url).hostname.toLowerCase();
+    return JOB_BOARD_DOMAINS.some(domain => hostname.includes(domain.split('/')[0]));
+  } catch {
+    return false;
+  }
+}
+
+function extractJobBoardName(url: string): string {
+  try {
+    const hostname = new URL(url).hostname.toLowerCase();
+    if (hostname.includes('indeed')) return 'Indeed';
+    if (hostname.includes('reed')) return 'Reed';
+    if (hostname.includes('linkedin')) return 'LinkedIn';
+    if (hostname.includes('totaljobs')) return 'Totaljobs';
+    if (hostname.includes('cwjobs')) return 'CWJobs';
+    if (hostname.includes('glassdoor')) return 'Glassdoor';
+    if (hostname.includes('monster')) return 'Monster';
+    if (hostname.includes('gov.wales') || hostname.includes('gov.uk')) return 'Gov Jobs';
+    return 'Job Board';
+  } catch {
+    return 'Job Board';
+  }
+}
 
 interface JobDetailsModalProps {
   job: JobMarker;
@@ -233,26 +272,35 @@ const JobDetailsModal = ({ job, onClose, onStartPathway }: JobDetailsModalProps)
         {/* Footer Actions */}
         <div className="p-6 pt-4 border-t border-border/50 bg-gradient-to-r from-transparent via-primary/5 to-transparent">
           <div className="flex gap-3">
-            <Button 
-              variant="outline"
-              className="flex-1 border-primary/30 hover:border-primary hover:bg-primary/10"
-              onClick={() => {
-                const url = (job as any).url;
-                if (url) {
-                  window.open(url, '_blank', 'noopener,noreferrer');
-                } else {
-                  // Fallback: search for job on Google
+            {isValidJobBoardUrl((job as any).url) ? (
+              <Button 
+                variant="outline"
+                className="flex-1 border-primary/30 hover:border-primary hover:bg-primary/10"
+                onClick={() => {
+                  window.open((job as any).url, '_blank', 'noopener,noreferrer');
+                }}
+              >
+                <ExternalLink className="w-4 h-4 mr-2" />
+                Apply on {extractJobBoardName((job as any).url)}
+              </Button>
+            ) : (
+              <Button 
+                variant="outline"
+                className="flex-1 border-muted-foreground/30 hover:border-muted-foreground hover:bg-muted/10"
+                onClick={() => {
+                  // Targeted search on job boards
+                  const searchQuery = encodeURIComponent(`${job.title} ${job.company} jobs ${job.city} Wales`);
                   window.open(
-                    `https://www.google.com/search?q=${encodeURIComponent(job.title + ' ' + job.company + ' jobs wales')}`,
+                    `https://www.google.com/search?q=${searchQuery}+site:indeed.co.uk+OR+site:reed.co.uk+OR+site:linkedin.com/jobs`,
                     '_blank',
                     'noopener,noreferrer'
                   );
-                }
-              }}
-            >
-              <ExternalLink className="w-4 h-4 mr-2" />
-              View Original
-            </Button>
+                }}
+              >
+                <Search className="w-4 h-4 mr-2" />
+                Find This Job
+              </Button>
+            )}
             <Button 
               className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
               onClick={onStartPathway}

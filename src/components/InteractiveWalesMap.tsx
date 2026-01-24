@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { cn } from '@/lib/utils';
@@ -57,6 +57,13 @@ const cityCoordinates: Record<string, [number, number]> = {
   'Welshpool': [-3.1457, 52.6600],
 };
 
+// Colors for entry levels
+const LEVEL_COLORS = {
+  easy: '#22c55e',
+  moderate: '#f97316',
+  difficult: '#ef4444'
+};
+
 const InteractiveWalesMap = ({
   isScanning = false,
   showMarkers = false,
@@ -66,12 +73,48 @@ const InteractiveWalesMap = ({
 }: InteractiveWalesMapProps) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
-  const markersRef = useRef<mapboxgl.Marker[]>([]);
   const popupRef = useRef<mapboxgl.Popup | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [mapStyle, setMapStyle] = useState<'dark' | 'satellite' | 'streets'>('dark');
   const [scanProgress, setScanProgress] = useState(0);
   const [scanPhase, setScanPhase] = useState<'idle' | 'sweeping' | 'pulsing' | 'complete'>('idle');
+
+  // Helper to get job coordinates with offset for overlapping
+  const getJobCoordinates = useCallback((job: Job, allJobs: Job[]): [number, number] => {
+    // Use job's stored lat/lng if available
+    if (job.lat !== null && job.lng !== null && job.lat !== undefined && job.lng !== undefined) {
+      // Still apply small offset for jobs with same exact coordinates
+      const sameCoordJobs = allJobs.filter(j => 
+        j.lat === job.lat && j.lng === job.lng
+      );
+      if (sameCoordJobs.length > 1) {
+        const index = sameCoordJobs.findIndex(j => j.id === job.id);
+        const angle = (index * 360) / sameCoordJobs.length;
+        const radius = 0.008;
+        return [
+          Number(job.lng) + Math.cos(angle * Math.PI / 180) * radius,
+          Number(job.lat) + Math.sin(angle * Math.PI / 180) * radius
+        ];
+      }
+      return [Number(job.lng), Number(job.lat)];
+    }
+
+    // Fallback to city coordinates
+    const coords = cityCoordinates[job.city];
+    if (!coords) return [-3.5, 52.2]; // Wales center fallback
+
+    const cityJobs = allJobs.filter(j => j.city === job.city);
+    if (cityJobs.length > 1) {
+      const index = cityJobs.findIndex(j => j.id === job.id);
+      const angle = (index * 360) / cityJobs.length;
+      const radius = 0.008 * Math.min(index + 1, 5);
+      return [
+        coords[0] + Math.cos(angle * Math.PI / 180) * radius,
+        coords[1] + Math.sin(angle * Math.PI / 180) * radius
+      ];
+    }
+    return coords;
+  }, []);
 
   // Enhanced scanning animation with phases
   useEffect(() => {
@@ -100,6 +143,124 @@ const InteractiveWalesMap = ({
     }
   }, [isScanning]);
 
+  // Add Welsh regions with colors
+  const addWelshRegions = useCallback((mapInstance: mapboxgl.Map) => {
+    const regions = [
+      { name: 'Cardiff', coordinates: [[-3.25, 51.42], [-3.1, 51.42], [-3.1, 51.52], [-3.25, 51.52], [-3.25, 51.42]], color: '#22c55e' },
+      { name: 'Swansea', coordinates: [[-4.1, 51.55], [-3.85, 51.55], [-3.85, 51.7], [-4.1, 51.7], [-4.1, 51.55]], color: '#f43f5e' },
+      { name: 'Newport', coordinates: [[-3.1, 51.52], [-2.9, 51.52], [-2.9, 51.65], [-3.1, 51.65], [-3.1, 51.52]], color: '#6366f1' },
+      { name: 'Wrexham', coordinates: [[-3.15, 52.95], [-2.85, 52.95], [-2.85, 53.1], [-3.15, 53.1], [-3.15, 52.95]], color: '#8b5cf6' },
+      { name: 'Gwynedd', coordinates: [[-4.5, 52.5], [-3.8, 52.5], [-3.8, 53.1], [-4.5, 53.1], [-4.5, 52.5]], color: '#10b981' },
+      { name: 'Powys', coordinates: [[-3.8, 51.9], [-3.0, 51.9], [-3.0, 52.7], [-3.8, 52.7], [-3.8, 51.9]], color: '#a855f7' },
+      { name: 'Pembrokeshire', coordinates: [[-5.3, 51.6], [-4.6, 51.6], [-4.6, 52.1], [-5.3, 52.1], [-5.3, 51.6]], color: '#d946ef' },
+      { name: 'Carmarthenshire', coordinates: [[-4.6, 51.7], [-3.9, 51.7], [-3.9, 52.2], [-4.6, 52.2], [-4.6, 51.7]], color: '#ec4899' },
+      { name: 'Ceredigion', coordinates: [[-4.6, 52.1], [-3.7, 52.1], [-3.7, 52.5], [-4.6, 52.5], [-4.6, 52.1]], color: '#f97316' },
+      { name: 'North Wales Coast', coordinates: [[-4.0, 53.15], [-3.3, 53.15], [-3.3, 53.4], [-4.0, 53.4], [-4.0, 53.15]], color: '#0ea5e9' },
+      { name: 'South Wales Valleys', coordinates: [[-3.6, 51.55], [-3.2, 51.55], [-3.2, 51.8], [-3.6, 51.8], [-3.6, 51.55]], color: '#eab308' },
+    ];
+
+    regions.forEach((region, index) => {
+      if (mapInstance.getLayer(`region-${index}`)) return; // Already added
+      
+      mapInstance.addLayer({
+        id: `region-${index}`,
+        type: 'fill',
+        source: {
+          type: 'geojson',
+          data: {
+            type: 'Feature',
+            properties: { name: region.name },
+            geometry: { type: 'Polygon', coordinates: [region.coordinates] }
+          }
+        },
+        paint: {
+          'fill-color': region.color,
+          'fill-opacity': 0.2,
+          'fill-outline-color': region.color
+        }
+      });
+
+      mapInstance.addLayer({
+        id: `region-border-${index}`,
+        type: 'line',
+        source: {
+          type: 'geojson',
+          data: {
+            type: 'Feature',
+            properties: { name: region.name },
+            geometry: { type: 'Polygon', coordinates: [region.coordinates] }
+          }
+        },
+        paint: {
+          'line-color': region.color,
+          'line-width': 2,
+          'line-opacity': 0.6
+        }
+      });
+    });
+  }, []);
+
+  // Add GeoJSON source and layers for jobs
+  const addJobLayers = useCallback((mapInstance: mapboxgl.Map) => {
+    // Add GeoJSON source for jobs if not exists
+    if (!mapInstance.getSource('jobs-source')) {
+      mapInstance.addSource('jobs-source', {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] }
+      });
+    }
+
+    // Add circle layers for each entry level
+    const levels: Array<'easy' | 'moderate' | 'difficult'> = ['easy', 'moderate', 'difficult'];
+    
+    levels.forEach(level => {
+      const layerId = `jobs-${level}`;
+      if (mapInstance.getLayer(layerId)) return;
+
+      mapInstance.addLayer({
+        id: layerId,
+        type: 'circle',
+        source: 'jobs-source',
+        filter: ['==', ['get', 'entry_level'], level],
+        paint: {
+          'circle-radius': [
+            'interpolate', ['linear'], ['zoom'],
+            6, 8,
+            10, 12,
+            14, 16
+          ],
+          'circle-color': LEVEL_COLORS[level],
+          'circle-stroke-width': 3,
+          'circle-stroke-color': '#ffffff',
+          'circle-opacity': 0.9,
+          'circle-stroke-opacity': 0.8
+        }
+      });
+
+      // Add outer glow layer
+      const glowLayerId = `jobs-${level}-glow`;
+      if (!mapInstance.getLayer(glowLayerId)) {
+        mapInstance.addLayer({
+          id: glowLayerId,
+          type: 'circle',
+          source: 'jobs-source',
+          filter: ['==', ['get', 'entry_level'], level],
+          paint: {
+            'circle-radius': [
+              'interpolate', ['linear'], ['zoom'],
+              6, 14,
+              10, 20,
+              14, 26
+            ],
+            'circle-color': LEVEL_COLORS[level],
+            'circle-opacity': 0.25,
+            'circle-blur': 1
+          }
+        }, layerId); // Insert below main layer
+      }
+    });
+  }, []);
+
   // Initialize map
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
@@ -119,25 +280,20 @@ const InteractiveWalesMap = ({
       maxZoom: 15,
       pitch: 30,
       bearing: 0,
-      maxBounds: [[-7, 50], [0, 55]], // Restrict to UK area to prevent marker drift
+      maxBounds: [[-7, 50], [0, 55]],
     });
 
     map.current.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');
     
-    // Close popups on zoom/pan to prevent misalignment
-    map.current.on('zoomstart', () => {
-      popupRef.current?.remove();
-    });
-    
-    map.current.on('dragstart', () => {
-      popupRef.current?.remove();
-    });
+    // Close popups on zoom/pan
+    map.current.on('zoomstart', () => popupRef.current?.remove());
+    map.current.on('dragstart', () => popupRef.current?.remove());
     
     map.current.on('load', () => {
       setMapLoaded(true);
       
       if (map.current) {
-        // Wales bounding box with subtle highlight
+        // Wales highlight
         map.current.addLayer({
           id: 'wales-highlight',
           type: 'fill',
@@ -148,9 +304,7 @@ const InteractiveWalesMap = ({
               properties: {},
               geometry: {
                 type: 'Polygon',
-                coordinates: [[
-                  [-5.5, 51.3], [-2.6, 51.3], [-2.6, 53.5], [-5.5, 53.5], [-5.5, 51.3]
-                ]]
+                coordinates: [[[-5.5, 51.3], [-2.6, 51.3], [-2.6, 53.5], [-5.5, 53.5], [-5.5, 51.3]]]
               }
             }
           },
@@ -191,324 +345,205 @@ const InteractiveWalesMap = ({
         });
 
         addWelshRegions(map.current);
+        addJobLayers(map.current);
       }
     });
 
     return () => {
-      markersRef.current.forEach(marker => marker.remove());
       popupRef.current?.remove();
       map.current?.remove();
       map.current = null;
     };
-  }, []);
+  }, [addWelshRegions, addJobLayers]);
 
-  // Add Welsh regions with colors
-  const addWelshRegions = (mapInstance: mapboxgl.Map) => {
-    const regions = [
-      { name: 'Cardiff', coordinates: [[-3.25, 51.42], [-3.1, 51.42], [-3.1, 51.52], [-3.25, 51.52], [-3.25, 51.42]], color: '#22c55e' },
-      { name: 'Swansea', coordinates: [[-4.1, 51.55], [-3.85, 51.55], [-3.85, 51.7], [-4.1, 51.7], [-4.1, 51.55]], color: '#f43f5e' },
-      { name: 'Newport', coordinates: [[-3.1, 51.52], [-2.9, 51.52], [-2.9, 51.65], [-3.1, 51.65], [-3.1, 51.52]], color: '#6366f1' },
-      { name: 'Wrexham', coordinates: [[-3.15, 52.95], [-2.85, 52.95], [-2.85, 53.1], [-3.15, 53.1], [-3.15, 52.95]], color: '#8b5cf6' },
-      { name: 'Gwynedd', coordinates: [[-4.5, 52.5], [-3.8, 52.5], [-3.8, 53.1], [-4.5, 53.1], [-4.5, 52.5]], color: '#10b981' },
-      { name: 'Powys', coordinates: [[-3.8, 51.9], [-3.0, 51.9], [-3.0, 52.7], [-3.8, 52.7], [-3.8, 51.9]], color: '#a855f7' },
-      { name: 'Pembrokeshire', coordinates: [[-5.3, 51.6], [-4.6, 51.6], [-4.6, 52.1], [-5.3, 52.1], [-5.3, 51.6]], color: '#d946ef' },
-      { name: 'Carmarthenshire', coordinates: [[-4.6, 51.7], [-3.9, 51.7], [-3.9, 52.2], [-4.6, 52.2], [-4.6, 51.7]], color: '#ec4899' },
-      { name: 'Ceredigion', coordinates: [[-4.6, 52.1], [-3.7, 52.1], [-3.7, 52.5], [-4.6, 52.5], [-4.6, 52.1]], color: '#f97316' },
-      { name: 'North Wales Coast', coordinates: [[-4.0, 53.15], [-3.3, 53.15], [-3.3, 53.4], [-4.0, 53.4], [-4.0, 53.15]], color: '#0ea5e9' },
-      { name: 'South Wales Valleys', coordinates: [[-3.6, 51.55], [-3.2, 51.55], [-3.2, 51.8], [-3.6, 51.8], [-3.6, 51.55]], color: '#eab308' },
-    ];
-
-    regions.forEach((region, index) => {
-      mapInstance.addLayer({
-        id: `region-${index}`,
-        type: 'fill',
-        source: {
-          type: 'geojson',
-          data: {
-            type: 'Feature',
-            properties: { name: region.name },
-            geometry: { type: 'Polygon', coordinates: [region.coordinates] }
-          }
-        },
-        paint: {
-          'fill-color': region.color,
-          'fill-opacity': 0.2,
-          'fill-outline-color': region.color
-        }
-      });
-
-      mapInstance.addLayer({
-        id: `region-border-${index}`,
-        type: 'line',
-        source: {
-          type: 'geojson',
-          data: {
-            type: 'Feature',
-            properties: { name: region.name },
-            geometry: { type: 'Polygon', coordinates: [region.coordinates] }
-          }
-        },
-        paint: {
-          'line-color': region.color,
-          'line-width': 2,
-          'line-opacity': 0.6
-        }
-      });
-    });
-  };
-
-  // Update markers when jobs change - FIXED to not move to top-left
+  // Update GeoJSON source when jobs/filter changes
   useEffect(() => {
     if (!map.current || !mapLoaded) return;
 
-    // Remove existing markers properly
-    markersRef.current.forEach(marker => marker.remove());
-    markersRef.current = [];
-    popupRef.current?.remove();
-
-    if (!showMarkers) return;
+    const source = map.current.getSource('jobs-source') as mapboxgl.GeoJSONSource;
+    if (!source) {
+      // Source not ready yet, add layers
+      addJobLayers(map.current);
+      return;
+    }
 
     const filteredJobs = filterLevel 
       ? jobs.filter(job => job.entry_level === filterLevel)
       : jobs;
 
-    // Group jobs by city
-    const jobsByCity: Record<string, Job[]> = {};
-    filteredJobs.forEach(job => {
-      if (!jobsByCity[job.city]) jobsByCity[job.city] = [];
-      jobsByCity[job.city].push(job);
+    const features = showMarkers ? filteredJobs.map(job => {
+      const [lng, lat] = getJobCoordinates(job, jobs);
+      return {
+        type: 'Feature' as const,
+        geometry: {
+          type: 'Point' as const,
+          coordinates: [lng, lat]
+        },
+        properties: {
+          id: job.id,
+          title: job.title,
+          company: job.company,
+          city: job.city,
+          entry_level: job.entry_level,
+          salary_min: job.salary_min,
+          salary_max: job.salary_max,
+          requirements: JSON.stringify(job.requirements || []),
+          skills: JSON.stringify(job.skills || []),
+          description: job.description,
+          posted_date: job.posted_date,
+          url: job.url,
+          lng,
+          lat
+        }
+      };
+    }) : [];
+
+    source.setData({
+      type: 'FeatureCollection',
+      features
     });
+  }, [jobs, showMarkers, filterLevel, mapLoaded, getJobCoordinates, addJobLayers]);
 
-    // Create markers for each job - use job's actual lat/lng when available
-    filteredJobs.forEach((job, index) => {
-      // Priority: use job's stored lat/lng, fallback to city lookup
-      let markerLng: number;
-      let markerLat: number;
+  // Add click and hover handlers for job layers
+  useEffect(() => {
+    if (!map.current || !mapLoaded) return;
 
-      if (job.lat !== null && job.lng !== null) {
-        // Use the job's actual coordinates from database
-        markerLng = job.lng;
-        markerLat = job.lat;
-      } else {
-        // Fallback to city coordinates with offset for multiple jobs in same city
-        const coords = cityCoordinates[job.city];
-        if (!coords) return;
+    const levels: Array<'easy' | 'moderate' | 'difficult'> = ['easy', 'moderate', 'difficult'];
+    
+    const handleClick = (e: mapboxgl.MapMouseEvent & { features?: mapboxgl.MapboxGeoJSONFeature[] }) => {
+      const feature = e.features?.[0];
+      if (!feature || !feature.properties) return;
 
-        const cityJobs = jobs.filter(j => j.city === job.city);
-        const cityIndex = cityJobs.findIndex(j => j.id === job.id);
-        const angle = (cityIndex * 360) / Math.max(cityJobs.length, 1);
-        const radius = 0.012 * Math.min(cityIndex, 5);
-        const offsetLng = Math.cos(angle * Math.PI / 180) * radius;
-        const offsetLat = Math.sin(angle * Math.PI / 180) * radius;
+      const props = feature.properties;
+      const coords = (feature.geometry as GeoJSON.Point).coordinates;
 
-        markerLng = coords[0] + offsetLng;
-        markerLat = coords[1] + offsetLat;
-      }
+      // Zoom to location first
+      map.current?.flyTo({
+        center: coords as [number, number],
+        zoom: 12,
+        pitch: 40,
+        duration: 800
+      });
 
-      const levelColors: Record<string, string> = {
-        easy: '#22c55e',
-        moderate: '#f97316',
-        difficult: '#ef4444'
+      // Create JobMarker from feature properties
+      const jobMarker: JobMarker = {
+        id: props.id,
+        city: props.city,
+        x: 0,
+        y: 0,
+        level: props.entry_level as 'easy' | 'moderate' | 'difficult',
+        title: props.title,
+        company: props.company,
+        salary_min: props.salary_min,
+        salary_max: props.salary_max,
+        requirements: props.requirements ? JSON.parse(props.requirements) : [],
+        skills: props.skills ? JSON.parse(props.skills) : [],
+        description: props.description,
+        posted_date: props.posted_date,
+        lng: props.lng,
+        lat: props.lat,
+        url: props.url
       };
 
-      const levelGradients: Record<string, string> = {
-        easy: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
-        moderate: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
-        difficult: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
-      };
+      // Slight delay to let zoom complete
+      setTimeout(() => {
+        onMarkerClick?.(jobMarker);
+      }, 400);
+    };
 
-      // Create futuristic hexagonal marker - fixed size, centered anchor
-      const el = document.createElement('div');
-      el.className = 'futuristic-marker';
-      el.style.cssText = `
-        width: 36px;
-        height: 42px;
-        position: relative;
-        cursor: pointer;
-        transition: transform 0.2s ease, filter 0.2s ease;
-        filter: drop-shadow(0 0 10px ${levelColors[job.entry_level]}80);
-        will-change: transform;
-        pointer-events: auto;
-      `;
+    const handleMouseEnter = (e: mapboxgl.MapMouseEvent & { features?: mapboxgl.MapboxGeoJSONFeature[] }) => {
+      if (!map.current) return;
+      map.current.getCanvas().style.cursor = 'pointer';
 
-      el.innerHTML = `
-        <svg viewBox="0 0 36 42" width="36" height="42" style="display: block;">
-          <defs>
-            <linearGradient id="grad-${job.id}" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" style="stop-color:${levelColors[job.entry_level]};stop-opacity:1" />
-              <stop offset="100%" style="stop-color:${levelColors[job.entry_level]};stop-opacity:0.7" />
-            </linearGradient>
-            <filter id="glow-${job.id}" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur stdDeviation="1.5" result="coloredBlur"/>
-              <feMerge>
-                <feMergeNode in="coloredBlur"/>
-                <feMergeNode in="SourceGraphic"/>
-              </feMerge>
-            </filter>
-          </defs>
-          <!-- Outer hexagon -->
-          <polygon 
-            points="18,2 34,11 34,31 18,40 2,31 2,11" 
-            fill="url(#grad-${job.id})" 
-            stroke="${levelColors[job.entry_level]}" 
-            stroke-width="1.5"
-            filter="url(#glow-${job.id})"
-          />
-          <!-- Inner hexagon -->
-          <polygon 
-            points="18,8 28,14 28,28 18,34 8,28 8,14" 
-            fill="rgba(0,0,0,0.5)" 
-            stroke="${levelColors[job.entry_level]}" 
-            stroke-width="0.75"
-            stroke-opacity="0.6"
-          />
-          <!-- Center dot with pulse -->
-          <circle cx="18" cy="21" r="4" fill="white" opacity="0.9">
-            <animate attributeName="opacity" values="0.9;0.5;0.9" dur="2s" repeatCount="indefinite"/>
-          </circle>
-        </svg>
-        <!-- Entry level emoji badge -->
+      const feature = e.features?.[0];
+      if (!feature || !feature.properties) return;
+
+      const props = feature.properties;
+      const coords = (feature.geometry as GeoJSON.Point).coordinates;
+      const levelColor = LEVEL_COLORS[props.entry_level as keyof typeof LEVEL_COLORS] || '#22c55e';
+
+      const salaryText = props.salary_min || props.salary_max 
+        ? `💰 £${props.salary_min?.toLocaleString() || '?'} - £${props.salary_max?.toLocaleString() || '?'}`
+        : '';
+
+      const popupContent = `
         <div style="
-          position: absolute;
-          bottom: -6px;
-          left: 50%;
-          transform: translateX(-50%);
-          font-size: 9px;
-          background: ${levelColors[job.entry_level]};
-          color: white;
-          padding: 1px 5px;
-          border-radius: 6px;
-          font-weight: 600;
-          white-space: nowrap;
-          box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+          background: linear-gradient(135deg, #1a1a1a 0%, #262626 100%);
+          border: 1px solid ${levelColor};
+          border-radius: 16px;
+          padding: 16px 20px;
+          min-width: 240px;
+          max-width: 300px;
+          box-shadow: 0 0 40px ${levelColor}30, 0 8px 32px rgba(0,0,0,0.5);
         ">
-          ${job.entry_level === 'easy' ? '🎯' : job.entry_level === 'moderate' ? '⚡' : '🔥'}
+          <div style="width: 100%; height: 4px; background: ${levelColor}; border-radius: 2px; margin-bottom: 12px;"></div>
+          <div style="font-weight: 700; color: white; font-size: 15px; margin-bottom: 6px; line-height: 1.3;">
+            ${props.title}
+          </div>
+          <div style="color: #9ca3af; font-size: 13px; margin-bottom: 10px;">
+            <span style="color: ${levelColor};">●</span> ${props.company} • ${props.city}
+          </div>
+          ${salaryText ? `<div style="color: #22c55e; font-size: 14px; font-weight: 600; margin-bottom: 10px;">${salaryText}</div>` : ''}
+          <div style="
+            display: inline-block;
+            padding: 5px 12px;
+            background: ${levelColor}20;
+            color: ${levelColor};
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            border: 1px solid ${levelColor}40;
+          ">
+            ${props.entry_level === 'easy' ? '🎯 Easy Entry' : props.entry_level === 'moderate' ? '⚡ Moderate' : '🔥 Competitive'}
+          </div>
+          <div style="color: #6b7280; font-size: 11px; margin-top: 10px; text-align: center;">
+            Click to zoom & view details →
+          </div>
         </div>
       `;
 
-      // Create marker with center anchor - stays locked to coordinates
-      const marker = new mapboxgl.Marker({ 
-        element: el, 
-        anchor: 'center'
+      popupRef.current?.remove();
+      popupRef.current = new mapboxgl.Popup({
+        closeButton: false,
+        closeOnClick: false,
+        offset: [0, -15],
+        anchor: 'bottom',
+        className: 'job-popup',
+        maxWidth: 'none'
       })
-        .setLngLat([markerLng, markerLat])
-        .addTo(map.current!);
+        .setLngLat(coords as [number, number])
+        .setHTML(popupContent)
+        .addTo(map.current);
+    };
 
-        // Create popup - FIXED positioning
-        const popupContent = `
-          <div class="job-popup-content" style="
-            background: linear-gradient(135deg, #1a1a1a 0%, #262626 100%);
-            border: 1px solid ${levelColors[job.entry_level]};
-            border-radius: 16px;
-            padding: 16px 20px;
-            min-width: 260px;
-            max-width: 320px;
-            box-shadow: 0 0 40px ${levelColors[job.entry_level]}30, 0 8px 32px rgba(0,0,0,0.5);
-            backdrop-filter: blur(12px);
-          ">
-            <div style="
-              width: 100%;
-              height: 4px;
-              background: ${levelGradients[job.entry_level]};
-              border-radius: 2px;
-              margin-bottom: 12px;
-            "></div>
-            <div style="font-weight: 700; color: white; font-size: 15px; margin-bottom: 6px; line-height: 1.3;">
-              ${job.title}
-            </div>
-            <div style="color: #9ca3af; font-size: 13px; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
-              <span style="color: ${levelColors[job.entry_level]};">●</span>
-              ${job.company} • ${job.city}
-            </div>
-            ${job.salary_min || job.salary_max ? `
-              <div style="color: #22c55e; font-size: 14px; font-weight: 600; margin-bottom: 10px;">
-                💰 £${job.salary_min?.toLocaleString() || '?'} - £${job.salary_max?.toLocaleString() || '?'}
-              </div>
-            ` : ''}
-            ${job.skills && job.skills.length > 0 ? `
-              <div style="display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px;">
-                ${job.skills.slice(0, 4).map(skill => `
-                  <span style="
-                    padding: 3px 8px;
-                    background: rgba(255,255,255,0.1);
-                    color: #d1d5db;
-                    border-radius: 6px;
-                    font-size: 11px;
-                  ">${skill}</span>
-                `).join('')}
-              </div>
-            ` : ''}
-            <div style="
-              display: inline-block;
-              padding: 5px 12px;
-              background: ${levelColors[job.entry_level]}20;
-              color: ${levelColors[job.entry_level]};
-              border-radius: 8px;
-              font-size: 12px;
-              font-weight: 600;
-              border: 1px solid ${levelColors[job.entry_level]}40;
-            ">
-              ${job.entry_level === 'easy' ? '🎯 Easy Entry' : job.entry_level === 'moderate' ? '⚡ Moderate' : '🔥 Competitive'}
-            </div>
-            <div style="color: #6b7280; font-size: 11px; margin-top: 10px; text-align: center;">
-              Click for full details →
-            </div>
-          </div>
-        `;
+    const handleMouseLeave = () => {
+      if (!map.current) return;
+      map.current.getCanvas().style.cursor = '';
+      popupRef.current?.remove();
+    };
 
-        const popup = new mapboxgl.Popup({
-          closeButton: false,
-          closeOnClick: false,
-          offset: [0, -30],
-          anchor: 'bottom',
-          className: 'job-popup',
-          maxWidth: 'none'
-        }).setHTML(popupContent);
-
-        // Hover events - popup stays at marker location
-        el.addEventListener('mouseenter', () => {
-          el.style.transform = 'scale(1.15)';
-          el.style.filter = `drop-shadow(0 0 20px ${levelColors[job.entry_level]})`;
-          el.style.zIndex = '100';
-          
-          // Set popup at the marker's coordinates
-          popup.setLngLat([markerLng, markerLat]);
-          popup.addTo(map.current!);
-          popupRef.current = popup;
-        });
-
-        el.addEventListener('mouseleave', () => {
-          el.style.transform = 'scale(1)';
-          el.style.filter = `drop-shadow(0 0 12px ${levelColors[job.entry_level]}80)`;
-          el.style.zIndex = '1';
-          popup.remove();
-        });
-
-        el.addEventListener('click', () => {
-          const cityCoord = cityCoordinates[job.city];
-          const jobMarker: JobMarker = {
-            id: job.id,
-            city: job.city,
-            x: 0,
-            y: 0,
-            level: job.entry_level,
-            title: job.title,
-            company: job.company,
-            salary_min: job.salary_min,
-            salary_max: job.salary_max,
-            requirements: job.requirements,
-            description: job.description,
-            skills: job.skills,
-            posted_date: job.posted_date,
-            lng: cityCoord?.[0],
-            lat: cityCoord?.[1],
-          };
-          onMarkerClick?.(jobMarker);
-        });
-
-        markersRef.current.push(marker);
+    // Add handlers for each layer
+    levels.forEach(level => {
+      const layerId = `jobs-${level}`;
+      
+      if (map.current?.getLayer(layerId)) {
+        map.current.on('click', layerId, handleClick);
+        map.current.on('mouseenter', layerId, handleMouseEnter);
+        map.current.on('mouseleave', layerId, handleMouseLeave);
+      }
     });
-  }, [jobs, showMarkers, filterLevel, mapLoaded, onMarkerClick]);
+
+    return () => {
+      levels.forEach(level => {
+        const layerId = `jobs-${level}`;
+        if (map.current?.getLayer(layerId)) {
+          map.current.off('click', layerId, handleClick);
+          map.current.off('mouseenter', layerId, handleMouseEnter);
+          map.current.off('mouseleave', layerId, handleMouseLeave);
+        }
+      });
+    };
+  }, [mapLoaded, onMarkerClick]);
 
   // Map controls
   const handleZoomIn = () => map.current?.zoomIn();
@@ -538,6 +573,10 @@ const InteractiveWalesMap = ({
     map.current.once('style.load', () => {
       if (map.current) {
         addWelshRegions(map.current);
+        addJobLayers(map.current);
+        // Re-trigger data update
+        setMapLoaded(false);
+        setTimeout(() => setMapLoaded(true), 100);
       }
     });
   };
@@ -753,14 +792,6 @@ const InteractiveWalesMap = ({
         }
         .mapboxgl-ctrl-group {
           display: none !important;
-        }
-        .futuristic-marker {
-          transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), filter 0.3s ease;
-          will-change: transform;
-        }
-        @keyframes marker-orbit {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
         }
       `}</style>
     </div>
