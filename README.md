@@ -31,6 +31,12 @@ Unlike generic courses or expensive bootcamps, we provide:
 
 ---
 
+## Screenshots
+<img width="1621" height="921" alt="{E7EA9C64-511A-4187-A4EB-372DAB5F52EB}" src="https://github.com/user-attachments/assets/6d2c0207-472c-444a-bdd9-9a014fbd39bf" />
+<img width="1619" height="918" alt="{BD225D49-DC36-4600-AB23-5AFC225F0D17}" src="https://github.com/user-attachments/assets/22cc4c6d-67c8-460a-aa44-977ac00935c2" />
+<img width="1623" height="816" alt="{BAFCB5ED-20BC-4065-94E1-15EB62A2F4CD}" src="https://github.com/user-attachments/assets/4e4b316f-3692-436b-b3fc-7dee44bd10f2" />
+
+
 ## 🖥️ Live Demo
 
 **👉 [https://pathwaywales.lovable.app](https://pathwaywales.lovable.app)**
